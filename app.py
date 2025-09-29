@@ -462,10 +462,49 @@ if uploaded_file is not None:
     else:
         df = pd.read_excel(uploaded_file)
 
-    # التأكد من وجود عمود 'team_vs'
-    if 'team_vs' not in df.columns:
-        st.error("⚠️ الملف لا يحتوي على العمود المطلوب 'team_vs'.")
+    # ✅ التحقق من الأعمدة الأساسية
+    required_cols = ['team_vs', 'teamName', 'h_a', 'type', 'minute', 'type_value_Own goal', 'name']
+    missing_cols = [col for col in required_cols if col not in df.columns]
+    if missing_cols:
+        st.error(f"⚠️ الملف ينقصه الأعمدة التالية: {', '.join(missing_cols)}")
         st.stop()
+
+    # ✅ التأكد من وجود مباراة واحدة فقط
+    match_name = df['team_vs'].dropna().unique()
+    if len(match_name) != 1:
+        st.error("⚠️ الملف يجب أن يحتوي على مباراة واحدة فقط.")
+        st.stop()
+
+    selected_match = match_name[0]
+    df = df[df['team_vs'] == selected_match].copy()
+    t1, t2 = selected_match.split(" vs ")
+
+    # ✅ تحديد الفرق (مضيف وضيف)
+    ha = df[['teamName', 'h_a']].dropna()
+    ha['h_a_norm'] = ha['h_a'].astype(str).str.lower().map({'h': 'h', 'a': 'a', 'home': 'h', 'away': 'a'})
+    home_name = ha.loc[ha['h_a_norm'] == 'h', 'teamName']
+    away_name = ha.loc[ha['h_a_norm'] == 'a', 'teamName']
+    hteamName = home_name.iloc[0] if not home_name.empty else t1
+    ateamName = away_name.iloc[0] if not away_name.empty else t2
+
+    # ✅ استخراج الأهداف
+    score_df = df[df['type'] == 'Goal'][['type', 'minute', 'type_value_Own goal', 'name', 'teamName']].fillna(0)
+    h_goal = score_df[(score_df['teamName'] == hteamName) & (score_df['type_value_Own goal'] == 0)]
+    h_og   = score_df[(score_df['teamName'] == hteamName) & (score_df['type_value_Own goal'] != 0)]
+    a_goal = score_df[(score_df['teamName'] == ateamName) & (score_df['type_value_Own goal'] == 0)]
+    a_og   = score_df[(score_df['teamName'] == ateamName) & (score_df['type_value_Own goal'] != 0)]
+    hgoal_count = len(h_goal) + len(a_og)
+    agoal_count = len(a_goal) + len(h_og)
+
+    # ✅ عرض النتيجة
+    st.markdown(f"### 🏟️ المباراة: `{selected_match}`")
+    st.markdown(f"### 🧮 النتيجة: {hteamName} {hgoal_count} - {agoal_count} {ateamName}")
+
+    # حفظ للجلسة إن لزم
+    st.session_state['df_match'] = df
+    st.session_state['hteam'] = hteamName
+    st.session_state['ateam'] = ateamName
+
 
     # استخراج اسم المباراة تلقائيًا
     match_name = df['team_vs'].dropna().unique()
