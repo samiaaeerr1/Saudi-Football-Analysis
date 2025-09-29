@@ -467,6 +467,24 @@ else:
     # Filter the main DataFrame to the final selected match
     df = df_week[df_week['team_vs'] == selected_match].copy()
 
+        st.header(f"تحليل مباراة: {selected_match}")
+    st.write(f"إجمالي الأحداث في هذه المباراة: {len(df)}")
+    st.dataframe(df.head())
+    
+    try:
+    # Split the match string "Team A vs Team B" into a list ["Team A", "Team B"]
+     teams = selected_match.split(' vs ')
+     hteamName = teams[0].strip() # .strip() removes any extra spaces
+     ateamName = teams[1].strip()
+    
+    # Optional: Display the names to confirm they were extracted correctly
+    # st.write(f"**الفريق المضيف (Home):** {hteamName}")
+    # st.write(f"**الفريق الضيف (Away):** {ateamName}")
+
+    except IndexError:
+     st.error(f"⚠️ لا يمكن تحديد أسماء الفرق من اسم المباراة المحدد: '{selected_match}'. يرجى التأكد من أن التنسيق هو 'Team A vs Team B'.")
+     st.stop()
+
     t1, t2 = selected_match.split(" vs ")
 
     if 'h_a' in df.columns:
@@ -6621,6 +6639,7 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
+
 
 
 
