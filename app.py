@@ -168,14 +168,6 @@ Field Tilt (%) = (Attacking Third Passes of Team) / (Attacking Third Passes of B
 </div>
 """, unsafe_allow_html=True)
 
-# 📂 رفع ملفات المباريات# 📁 Section for uploading match files
-with st.expander("📂 رفع ملفات المباريات (CSV/Excel)", expanded=True): # Set expanded=True to keep it open by default
-    match_files = st.file_uploader(
-        "اسحب وأفلت الملفات هنا أو اختر من جهازك",
-        type=["csv", "xlsx"],
-        accept_multiple_files=True
-    )
-
 
 # (اختياري) تنسيق RTL عام
 st.markdown("""
@@ -350,36 +342,17 @@ def load_data(url: str) -> pd.DataFrame:
     df.columns = df.columns.str.strip()
     return df
 
-
 # ✅ استبدل رابط blob برابط RAW الصحيح
-# 1. Check if any files have been uploaded
-if not match_files:
-    st.warning("يرجى رفع ملف بيانات (CSV أو Excel) لبدء التحليل.")
-    st.stop() # Stop the app execution until a file is uploaded
+# url = "https://raw.githubusercontent.com/Taleb1402/streamlit-Sudia-competition/refs/heads/main/final_merged_with_teams_FIXED_competition.csv"
 
-# 2. If files are uploaded, load them into a DataFrame
+# 📂 رفع ملفات المباريات
+with st.expander("📂 رفع ملفات المباراة (CSV/Excel)"):
+    match_files = st.file_uploader("اسحب وأسقط الملفات هنا أو اختر من جهازك", type=["csv", "xlsx"], accept_multiple_files=True)
 try:
-    # Create a list to hold dataframes from each uploaded file
-    all_dfs = []
-    for file in match_files:
-        # Reset the file pointer to the beginning
-        file.seek(0)
-        # Check the file type to use the correct pandas function
-        if file.name.endswith('.csv'):
-            # For CSV, we can pass the file object directly to pandas
-            df_temp = pd.read_csv(file)
-        else: # For .xlsx
-            # For Excel, it's the same
-            df_temp = pd.read_excel(file)
-        all_dfs.append(df_temp)
-
-    # 3. Combine all dataframes into one single dataframe
-    df = pd.concat(all_dfs, ignore_index=True)
-
-    st.success(f"✅ تم تحميل ومعالجة {len(match_files)} ملف/ملفات بنجاح. (إجمالي الصفوف: {len(df)})")
-
+    df = load_data(match_files)
+    st.success(f"تم تحميل البيانات ✅ عدد الصفوف: {len(df):,}")
 except Exception as e:
-    st.error(f"حدث خطأ أثناء قراءة الملف: {e}")
+    st.error(f" حدث خطأ أثناء تحميل البيانات: {e}")
     st.stop()
 
 # ============================ #
@@ -6650,8 +6623,6 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
-
-
 
 
 
