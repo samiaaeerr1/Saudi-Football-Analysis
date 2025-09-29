@@ -104,6 +104,9 @@ import streamlit as st
 
 # إعداد الصفحة
 
+# 📂 رفع ملفات المباريات
+with st.expander("📂 رفع ملفات المباراة (CSV/Excel)"):
+    match_files = st.file_uploader("اسحب وأسقط الملفات هنا أو اختر من جهازك", type=["csv", "xlsx"], accept_multiple_files=True)
 
 st.markdown("""
 <div dir="rtl" style='background-color:#1a2a3a; padding:15px; border-radius:10px; font-size:16px; color:#f5f5f5; text-align: right;'>
@@ -6621,6 +6624,7 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
+
 
 
 
