@@ -451,84 +451,43 @@ else:
         ).fillna(0)
         df = df[week_numeric > 0].copy()
 
-# 📂 رفع ملف المباراة فقط
-with st.expander("📂 رفع ملف المباراة (CSV أو Excel)"):
-    uploaded_file = st.file_uploader("ارفع ملف مباراة واحدة فقط", type=["csv", "xlsx"])
+# ✅ اختيار المباراة
+matches = sorted(df['team_vs'].dropna().unique().tolist())
+if not matches:
+    st.error("⚠️ لا توجد مباريات في هذه الجولة.")
+    st.stop()
 
-if uploaded_file is not None:
-    # قراءة الملف
-    if uploaded_file.name.endswith('.csv'):
-        df = pd.read_csv(uploaded_file)
-    else:
-        df = pd.read_excel(uploaded_file)
+selected_match = st.selectbox(" اختر المباراة", matches)
 
-    # ✅ التحقق من الأعمدة الأساسية
-    required_cols = ['team_vs', 'teamName', 'h_a', 'type', 'minute', 'type_value_Own goal', 'name']
-    missing_cols = [col for col in required_cols if col not in df.columns]
-    if missing_cols:
-        st.error(f"⚠️ الملف ينقصه الأعمدة التالية: {', '.join(missing_cols)}")
-        st.stop()
-
-    # ✅ التأكد من وجود مباراة واحدة فقط
-    match_name = df['team_vs'].dropna().unique()
-    if len(match_name) != 1:
-        st.error("⚠️ الملف يجب أن يحتوي على مباراة واحدة فقط.")
-        st.stop()
-
-    selected_match = match_name[0]
+# ============================ #
+#          معالجة المباراة     #
+# ============================ #
+if selected_match:
     df = df[df['team_vs'] == selected_match].copy()
+    df_match = df.copy()
+    st.session_state['df_match'] = df_match
+
     t1, t2 = selected_match.split(" vs ")
 
-    # ✅ تحديد الفرق (مضيف وضيف)
-    ha = df[['teamName', 'h_a']].dropna()
-    ha['h_a_norm'] = ha['h_a'].astype(str).str.lower().map({'h': 'h', 'a': 'a', 'home': 'h', 'away': 'a'})
-    home_name = ha.loc[ha['h_a_norm'] == 'h', 'teamName']
-    away_name = ha.loc[ha['h_a_norm'] == 'a', 'teamName']
-    hteamName = home_name.iloc[0] if not home_name.empty else t1
-    ateamName = away_name.iloc[0] if not away_name.empty else t2
-
-    # ✅ استخراج الأهداف
-    score_df = df[df['type'] == 'Goal'][['type', 'minute', 'type_value_Own goal', 'name', 'teamName']].fillna(0)
-    h_goal = score_df[(score_df['teamName'] == hteamName) & (score_df['type_value_Own goal'] == 0)]
-    h_og   = score_df[(score_df['teamName'] == hteamName) & (score_df['type_value_Own goal'] != 0)]
-    a_goal = score_df[(score_df['teamName'] == ateamName) & (score_df['type_value_Own goal'] == 0)]
-    a_og   = score_df[(score_df['teamName'] == ateamName) & (score_df['type_value_Own goal'] != 0)]
-    hgoal_count = len(h_goal) + len(a_og)
-    agoal_count = len(a_goal) + len(h_og)
-
-    # ✅ عرض النتيجة
-    st.markdown(f"### 🏟️ المباراة: `{selected_match}`")
-    st.markdown(f"### 🧮 النتيجة: {hteamName} {hgoal_count} - {agoal_count} {ateamName}")
-
-    # حفظ للجلسة إن لزم
-    st.session_state['df_match'] = df
-    st.session_state['hteam'] = hteamName
-    st.session_state['ateam'] = ateamName
-
-
-    # استخراج اسم المباراة تلقائيًا
-    match_name = df['team_vs'].dropna().unique()
-    if len(match_name) != 1:
-        st.error("⚠️ الملف يجب أن يحتوي على مباراة واحدة فقط.")
-        st.stop()
-    selected_match = match_name[0]
-
-    # تصفية بيانات المباراة
-    df = df[df['team_vs'] == selected_match].copy()
-    t1, t2 = selected_match.split(" vs ")
-
-    # تحديد الفرق المضيف والضيف تلقائيًا
     if 'h_a' in df.columns:
         ha = df[['teamName', 'h_a']].dropna()
+        # تطبيع القيم المحتملة
         ha['h_a_norm'] = ha['h_a'].astype(str).str.lower().map({'h': 'h', 'a': 'a', 'home': 'h', 'away': 'a'})
         home_name = ha.loc[ha['h_a_norm'] == 'h', 'teamName']
         away_name = ha.loc[ha['h_a_norm'] == 'a', 'teamName']
-        hteamName = home_name.iloc[0] if not home_name.empty else t1
-        ateamName = away_name.iloc[0] if not away_name.empty else t2
+        if not home_name.empty and not away_name.empty:
+            hteamName, ateamName = home_name.iloc[0], away_name.iloc[0]
+        else:
+            hteamName, ateamName = t1, t2
     else:
         hteamName, ateamName = t1, t2
 
-    # احتساب الأهداف
+    st.session_state['hteam'] = hteamName
+    st.session_state['ateam'] = ateamName
+
+    homedf = df[df['teamName'] == hteamName].copy()
+    awaydf = df[df['teamName'] == ateamName].copy()
+
     score_df = df[df['type'] == 'Goal'][['type', 'minute', 'type_value_Own goal', 'name', 'teamName']].fillna(0)
     h_goal = score_df[(score_df['teamName'] == hteamName) & (score_df['type_value_Own goal'] == 0)]
     h_og   = score_df[(score_df['teamName'] == hteamName) & (score_df['type_value_Own goal'] != 0)]
@@ -537,14 +496,7 @@ if uploaded_file is not None:
     hgoal_count = len(h_goal) + len(a_og)
     agoal_count = len(a_goal) + len(h_og)
 
-    # عرض النتيجة
-    st.markdown(f"### 🏟️ المباراة: `{selected_match}`")
-    st.markdown(f"### 🧮 النتيجة: {hteamName} {hgoal_count} - {agoal_count} {ateamName}")
-
-    # حفظ الجلسة إذا احتجت لاحقًا
-    st.session_state['df_match'] = df
-    st.session_state['hteam'] = hteamName
-    st.session_state['ateam'] = ateamName
+    st.markdown(f"###  النتيجة: {ar(hteamName)} {hgoal_count} - {agoal_count} {ar(ateamName)}")
 
     # 👥 أسماء اللاعبين (قد تحتاجها لاحقًا)
     hpnames = homedf['name'].dropna().unique()
@@ -6672,7 +6624,6 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
-
 
 
 
