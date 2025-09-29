@@ -57,14 +57,13 @@ import streamlit as st
 import base64
 import streamlit as st
 
-# مسار الصورة المحلي
-#local_image_path = r"C:\Users\aalturaidi\Downloads\WhatsApp Image 2025-08-11 at 10.23.35 PM.jpeg"
+import streamlit as st
 
-# تحويل الصورة المحلية إلى Base64
-#with open(local_image_path, "rb") as img_file:
-#    encoded_image = base64.b64encode(img_file.read()).decode()
-
-# عرض الصورة + النص في الوسط بحجم أكبر
+# عنوان في الوسط وبحجم كبير
+st.markdown(
+    "<h1 style='text-align: center; font-size: 50px;'>تحليل الدوري السعودي</h1>",
+    unsafe_allow_html=True
+)
 
 
 # تحميل كلمات المرور المشفرة
@@ -6633,6 +6632,7 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
+
 
 
 
