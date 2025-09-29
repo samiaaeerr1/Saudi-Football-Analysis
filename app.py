@@ -341,149 +341,131 @@ import pandas as pd
 import streamlit as st
 import pandas as pd
 
-@st.cache_data(show_spinner="Loading data...")
-def load_data_from_source(source) -> pd.DataFrame:
-    """Loads data from a URL, a file path, or an uploaded file object."""
-    # This function can now handle different types of sources
-    df = pd.read_csv(source)
+@st.cache_data(show_spinner=False)
+def load_data(url: str) -> pd.DataFrame:
+    df = pd.read_csv(url, low_memory=False)  # لتجنب DtypeWarning
     df.columns = df.columns.str.strip()
     return df
 
-# --- Part B: File Uploader and Main Logic ---
+# ✅ استبدل رابط blob برابط RAW الصحيح
+# url = "https://raw.githubusercontent.com/Taleb1402/streamlit-Sudia-competition/refs/heads/main/final_merged_with_teams_FIXED_competition.csv"
+try:
+    df = load_data(url)
+    st.success(f"تم تحميل البيانات ✅ عدد الصفوف: {len(df):,}")   
+except Exception as e:
+    st.error(f" حدث خطأ أثناء تحميل البيانات: {e}")
+    st.stop()
 
-# Use a sidebar for the uploader and data source selection for a cleaner UI
-with st.sidebar:
-    st.markdown("## 📂 رفع ملف المباراة")
-    uploaded_files = st.file_uploader(
-        "لتحليل مباراة جديدة، ارفع ملف CSV هنا:",
-        type=["csv"], # Let's keep it to CSV for now to match the URL file type
-        accept_multiple_files=True
-    )
-
-# --- Part C: Decide which DataFrame to use ---
-
-df = None # Initialize df as None
-
-if uploaded_files:
-    # --- LOGIC FOR UPLOADED FILE ---
-    st.sidebar.info(f"✅ تم رفع {len(uploaded_files)} ملف/ملفات. يتم الآن تحليلها.")
-    try:
-        # Combine all uploaded files into a single DataFrame
-        df_list = [load_data_from_source(file) for file in uploaded_files]
-        df = pd.concat(df_list, ignore_index=True)
-        st.success(f"تم دمج الملفات بنجاح ✅ عدد الصفوف الكلي: {len(df):,}")
-        
-        # We set a flag to remember that this is custom data
-        is_custom_upload = True
-
-    except Exception as e:
-        st.error(f"حدث خطأ أثناء قراءة الملف المرفوع: {e}")
-        st.stop()
-
-else:
-    # --- LOGIC FOR DEFAULT URL ---
-    st.sidebar.info("ℹ️ لم يتم رفع أي ملف. سيتم استخدام مجموعة البيانات الافتراضية.")
-    try:
-        url = "https://raw.githubusercontent.com/Taleb1402/streamlit-Sudia-competition/refs/heads/main/final_merged_with_teams_FIXED_competition.csv"
-        df = load_data_from_source(url )
-        st.success(f"تم تحميل البيانات الافتراضية ✅ عدد الصفوف: {len(df):,}")
-        
-        # The flag is false when using the default data
-        is_custom_upload = False
-
-    except Exception as e:
-        st.error(f"حدث خطأ أثناء تحميل البيانات الافتراضية: {e}")
-        st.stop()
-
-
-# =======================================================================
-# STEP 2: UNIFIED DATA VALIDATION AND FILTERING
-# From this point onwards, the code doesn't care about the source.
-# =======================================================================
-
-# --- Part A: Column Validation ---
+# ============================ #
+#  التحقق ومعالجة الأعمدة      #
+# ============================ #
 required_columns = ['type', 'name', 'playerId', 'teamName', 'oppositionTeamName']
 missing = [c for c in required_columns if c not in df.columns]
 if missing:
-    st.error(f"⚠️ الملف يفتقد الأعمدة الضرورية للتحليل: {missing}")
+    st.error(f"⚠️ الملف يفتقد الأعمدة الضرورية: {missing}")
     st.stop()
 
-# --- Part B: Create 'team_vs' column if it doesn't exist ---
+# ✅ تعبئة اسم اللاعب في حمل الكرة إذا مفقود
+df.loc[
+    (df['type'] == 'Carry') & (df['name'].isna()) & (df['playerId'] == df['playerId'].shift(-1)),
+    'name'
+] = df['name'].shift(-1)
+
+# ✅ اختصار الأسماء
+def get_short_name(full_name):
+    if pd.isna(full_name):
+        return full_name
+    parts = str(full_name).split()
+    if len(parts) == 1:
+        return full_name
+    elif len(parts) == 2:
+        return parts[0][0] + ". " + parts[1]
+    else:
+        return parts[0][0] + ". " + parts[1][0] + ". " + " ".join(parts[2:])
+
+df['shortName'] = df['name'].apply(get_short_name)
+
+# ✅ عمود الأهداف العكسية
+df['type_value_Own goal'] = pd.to_numeric(
+    df.get('type_value_Own goal', pd.Series([0]*len(df))), errors='coerce'
+).fillna(0)
+
+# ✅ عمود البطولة
+if 'competition' not in df.columns:
+    st.info("ℹ لا يوجد عمود للبطولة في الملف — أدخِلها يدويًا لجميع الصفوف.")
+    comp_input = st.text_input("أدخل اسم البطولة يدويًا:", "")
+    df['competition'] = comp_input
+else:
+    df['competition'] = df['competition'].astype(str).str.strip()
+
+# ✅ عمود team_vs
 if 'team_vs' not in df.columns:
-    df['team_vs'] = df.apply(
-        lambda row: " vs ".join(sorted([str(row['teamName']), str(row['oppositionTeamName'])])),
-        axis=1
-    )
-
-# --- Part C: Dynamic Filtering Logic ---
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("## 📝 خيارات التحليل")
-
-# This is the key change. We check the 'is_custom_upload' flag.
-if is_custom_upload:
-    # --- Filter for UPLOADED data ---
-    # Simple filter: just select the match directly.
-    st.sidebar.subheader("اختر المباراة من الملف")
-    
-    matches = sorted(df['team_vs'].dropna().unique().tolist())
-    if not matches:
-        st.warning("لم يتم العثور على مباريات في الملف المرفوع.")
+    if {'teamName', 'oppositionTeamName'}.issubset(df.columns):
+        df['team_vs'] = df.apply(
+            lambda row: " vs ".join(sorted([str(row['teamName']), str(row['oppositionTeamName'])])),
+            axis=1
+        )
+    else:
+        st.error(" الملف لا يحتوي على أعمدة الفريقين.")
         st.stop()
-    
-    selected_match = st.sidebar.selectbox("اختر المباراة للتحليل:", matches)
-    
-    # Filter the main DataFrame to only the selected match
-    df = df[df['team_vs'] == selected_match].copy()
-    
-    # We can set league_name to the match name for consistency if needed elsewhere
-    league_name = selected_match 
+
+# ============================ #
+#         اختيارات الواجهة     #
+# ============================ #
+competitions = sorted([c for c in df['competition'].dropna().unique().tolist() if str(c).strip() != ""])
+if not competitions:
+    st.warning(" الرجاء إدخال اسم البطولة أولًا، ثم سيظهر الاختيار.")
+    st.stop()
+
+selected_competition = st.selectbox(" اختر البطولة", competitions)
+df = df[df['competition'] == selected_competition].copy()
+league_name = selected_competition
+
+# ✅ اختيار الجولة — يدعم الشكلين (عمود واحد أو عدة أعمدة)
+has_value_week_col = ('week' in df.columns)
+one_hot_week_cols = [c for c in df.columns if c.lower().startswith("week") and c.lower() != "week"]
+
+if has_value_week_col and not one_hot_week_cols:
+    # حالة: عمود واحد يحمل القيم (week1, week2, ...)
+    weeks = (df['week'].dropna().astype(str).str.strip().unique().tolist())
+    weeks = sorted(weeks)
+    if not weeks:
+        st.error("لا توجد قيم في عمود week.")
+        st.stop()
+    selected_week = st.selectbox("اختر الجولة", weeks)
+    df = df[df['week'].astype(str).str.strip() == selected_week].copy()
 
 else:
-    # --- Filter for DEFAULT URL data (your original logic) ---
-    st.sidebar.subheader("اختر المباراة من البيانات الافتراضية")
-
-    competitions = sorted([c for c in df['competition'].dropna().unique().tolist() if str(c).strip() != ""])
-    if not competitions:
-        st.warning("لم يتم العثور على بطولات في البيانات.")
+    # حالة: أعمدة week1, week2, ...
+    if not one_hot_week_cols:
+        st.error(" لا يوجد أعمدة للجولات تبدأ بـ week.")
         st.stop()
-
-    selected_competition = st.sidebar.selectbox("اختر البطولة", competitions)
-    df_comp = df[df['competition'] == selected_competition].copy()
-    league_name = selected_competition
-
-    # Week selection logic (simplified for clarity, assuming 'week' column exists)
-    if 'week' in df_comp.columns:
-        weeks = sorted(df_comp['week'].dropna().unique().tolist())
-        selected_week = st.sidebar.selectbox("اختر الجولة", weeks)
-        df_week = df_comp[df_comp['week'] == selected_week].copy()
+    selected_week = st.selectbox(" اختر الجولة", sorted(one_hot_week_cols))
+    week_series = df[selected_week]
+    if week_series.dtype == bool:
+        df = df[week_series].copy()
     else:
-        df_week = df_comp # No week column, use the whole competition data
+        week_numeric = pd.to_numeric(
+            week_series.replace({"True": 1, "False": 0, "Yes": 1, "No": 0}),
+            errors='coerce'
+        ).fillna(0)
+        df = df[week_numeric > 0].copy()
 
-    # Match selection
-    matches = sorted(df_week['team_vs'].dropna().unique().tolist())
-    selected_match = st.sidebar.selectbox("اختر المباراة", matches)
+# ✅ اختيار المباراة
+matches = sorted(df['team_vs'].dropna().unique().tolist())
+if not matches:
+    st.error("⚠️ لا توجد مباريات في هذه الجولة.")
+    st.stop()
 
-    # Filter the main DataFrame to the final selected match
-    df = df_week[df_week['team_vs'] == selected_match].copy()
+selected_match = st.selectbox(" اختر المباراة", matches)
 
-    st.header(f"تحليل مباراة: {selected_match}")
-    st.write(f"إجمالي الأحداث في هذه المباراة: {len(df)}")
-    st.dataframe(df.head())
-    
-    try:
-    # Split the match string "Team A vs Team B" into a list ["Team A", "Team B"]
-     teams = selected_match.split(' vs ')
-     hteamName = teams[0].strip() # .strip() removes any extra spaces
-     ateamName = teams[1].strip()
-    
-    # Optional: Display the names to confirm they were extracted correctly
-    # st.write(f"**الفريق المضيف (Home):** {hteamName}")
-    # st.write(f"**الفريق الضيف (Away):** {ateamName}")
-
-    except IndexError:
-     st.error(f"⚠️ لا يمكن تحديد أسماء الفرق من اسم المباراة المحدد: '{selected_match}'. يرجى التأكد من أن التنسيق هو 'Team A vs Team B'.")
-     st.stop()
+# ============================ #
+#          معالجة المباراة     #
+# ============================ #
+if selected_match:
+    df = df[df['team_vs'] == selected_match].copy()
+    df_match = df.copy()
+    st.session_state['df_match'] = df_match
 
     t1, t2 = selected_match.split(" vs ")
 
@@ -567,6 +549,9 @@ else:
     average_location = passes.groupby('name', as_index=False).agg({'x': 'mean', 'y': 'mean'})
     sonar_df = sonar_df.merge(average_location, on="name", how="left")
 
+
+else:
+    st.warning(" الرجاء تحديد مباراة لتحليلها.")
 
 # =========================
 
@@ -6639,13 +6624,3 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
-
-
-
-
-
-
-
-
-
-
