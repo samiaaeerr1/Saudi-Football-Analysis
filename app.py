@@ -168,11 +168,6 @@ Field Tilt (%) = (Attacking Third Passes of Team) / (Attacking Third Passes of B
 </div>
 """, unsafe_allow_html=True)
 
-# 📂 رفع ملفات المباريات
-with st.expander("📂 رفع ملفات المباراة (CSV/Excel)"):
-    match_files = st.file_uploader("اسحب وأسقط الملفات هنا أو اختر من جهازك", type=["csv", "xlsx"], accept_multiple_files=True)
-
-
 
 # (اختياري) تنسيق RTL عام
 st.markdown("""
@@ -452,14 +447,7 @@ else:
         df = df[week_numeric > 0].copy()
 
 # ✅ اختيار المباراة
-
-# 📂 رفع ملفات المباريات
-with st.expander("📂 رفع ملف المباراة (CSV/Excel)"):
-    match_files = st.file_uploader("اسحب وأسقط الملفات هنا أو اختر من جهازك", type=["csv", "xlsx"], accept_multiple_files=True)
-    
-matches = sorted(match_files['team_vs'].dropna().unique().tolist())
-
-
+matches = sorted(df['team_vs'].dropna().unique().tolist())
 if not matches:
     st.error("⚠️ لا توجد مباريات في هذه الجولة.")
     st.stop()
@@ -470,14 +458,14 @@ selected_match = st.selectbox(" اختر المباراة", matches)
 #          معالجة المباراة     #
 # ============================ #
 if selected_match:
-    match_files = match_files[match_files['team_vs'] == selected_match].copy()
-    df_match = match_files.copy()
+    df = df[df['team_vs'] == selected_match].copy()
+    df_match = df.copy()
     st.session_state['df_match'] = df_match
 
     t1, t2 = selected_match.split(" vs ")
 
-    if 'h_a' in match_files.columns:
-        ha = match_files[['teamName', 'h_a']].dropna()
+    if 'h_a' in df.columns:
+        ha = df[['teamName', 'h_a']].dropna()
         # تطبيع القيم المحتملة
         ha['h_a_norm'] = ha['h_a'].astype(str).str.lower().map({'h': 'h', 'a': 'a', 'home': 'h', 'away': 'a'})
         home_name = ha.loc[ha['h_a_norm'] == 'h', 'teamName']
@@ -492,10 +480,10 @@ if selected_match:
     st.session_state['hteam'] = hteamName
     st.session_state['ateam'] = ateamName
 
-    homedf = match_files[match_files['teamName'] == hteamName].copy()
-    awaydf = match_files[match_files['teamName'] == ateamName].copy()
+    homedf = df[df['teamName'] == hteamName].copy()
+    awaydf = df[df['teamName'] == ateamName].copy()
 
-    score_df = match_files[match_files['type'] == 'Goal'][['type', 'minute', 'type_value_Own goal', 'name', 'teamName']].fillna(0)
+    score_df = df[df['type'] == 'Goal'][['type', 'minute', 'type_value_Own goal', 'name', 'teamName']].fillna(0)
     h_goal = score_df[(score_df['teamName'] == hteamName) & (score_df['type_value_Own goal'] == 0)]
     h_og   = score_df[(score_df['teamName'] == hteamName) & (score_df['type_value_Own goal'] != 0)]
     a_goal = score_df[(score_df['teamName'] == ateamName) & (score_df['type_value_Own goal'] == 0)]
@@ -555,6 +543,7 @@ if selected_match:
 
     average_location = passes.groupby('name', as_index=False).agg({'x': 'mean', 'y': 'mean'})
     sonar_df = sonar_df.merge(average_location, on="name", how="left")
+
 
 else:
     st.warning(" الرجاء تحديد مباراة لتحليلها.")
@@ -6630,9 +6619,6 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
-
-
-
 
 
 
