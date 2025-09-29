@@ -467,7 +467,7 @@ else:
     # Filter the main DataFrame to the final selected match
     df = df_week[df_week['team_vs'] == selected_match].copy()
 
-        st.header(f"تحليل مباراة: {selected_match}")
+    st.header(f"تحليل مباراة: {selected_match}")
     st.write(f"إجمالي الأحداث في هذه المباراة: {len(df)}")
     st.dataframe(df.head())
     
@@ -6639,6 +6639,7 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
+
 
 
 
