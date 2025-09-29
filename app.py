@@ -168,6 +168,11 @@ Field Tilt (%) = (Attacking Third Passes of Team) / (Attacking Third Passes of B
 </div>
 """, unsafe_allow_html=True)
 
+# 📂 رفع ملفات المباريات
+with st.expander("📂 رفع ملفات المباراة (CSV/Excel)"):
+    match_files = st.file_uploader("اسحب وأسقط الملفات هنا أو اختر من جهازك", type=["csv", "xlsx"], accept_multiple_files=True)
+
+
 
 # (اختياري) تنسيق RTL عام
 st.markdown("""
@@ -344,13 +349,8 @@ def load_data(url: str) -> pd.DataFrame:
 
 # ✅ استبدل رابط blob برابط RAW الصحيح
 # url = "https://raw.githubusercontent.com/Taleb1402/streamlit-Sudia-competition/refs/heads/main/final_merged_with_teams_FIXED_competition.csv"
-
-# 📂 رفع ملفات المباريات
-with st.expander("📂 رفع ملفات المباراة (CSV/Excel)"):
-    match_files = st.file_uploader("اسحب وأسقط الملفات هنا أو اختر من جهازك", type=["csv", "xlsx"], accept_multiple_files=True)
-
 try:
-    df = load_data(match_files[0]) if match_files else pd.DataFrame()
+    df = load_data(url)
     st.success(f"تم تحميل البيانات ✅ عدد الصفوف: {len(df):,}")   
 except Exception as e:
     st.error(f" حدث خطأ أثناء تحميل البيانات: {e}")
@@ -6624,7 +6624,6 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
-
 
 
 
