@@ -6625,3 +6625,4 @@ elif analysis_type == "تحليل لاعب":
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
 
+
