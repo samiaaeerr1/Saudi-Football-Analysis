@@ -351,7 +351,7 @@ def load_data(url: str) -> pd.DataFrame:
 url = "https://raw.githubusercontent.com/Taleb1402/streamlit-Sudia-competition/refs/heads/main/final_merged_with_teams_FIXED_competition.csv"
 try:
     df = load_data(url)
-    st.success(f"تم تحميل البيانات ✅ عدد الصفوف: {len(df):,}")   
+    st.success(f"تم تحميل البيانات ✅ عدد الصفوف: {len(df):,}")
 except Exception as e:
     st.error(f" حدث خطأ أثناء تحميل البيانات: {e}")
     st.stop()
@@ -414,7 +414,63 @@ if 'team_vs' not in df.columns:
 # ============================ #
 competitions = sorted([c for c in df['competition'].dropna().unique().tolist() if str(c).strip() != ""])
 if not competitions:
-    
+    st.warning(" الرجاء إدخال اسم البطولة أولًا، ثم سيظهر الاختيار.")
+    st.stop()
+
+selected_competition = st.selectbox(" اختر البطولة", competitions)
+df = df[df['competition'] == selected_competition].copy()
+league_name = selected_competition
+
+# ✅ اختيار الجولة — يدعم الشكلين (عمود واحد أو عدة أعمدة)
+has_value_week_col = ('week' in df.columns)
+one_hot_week_cols = [c for c in df.columns if c.lower().startswith("week") and c.lower() != "week"]
+
+if has_value_week_col and not one_hot_week_cols:
+    # حالة: عمود واحد يحمل القيم (week1, week2, ...)
+    weeks = (df['week'].dropna().astype(str).str.strip().unique().tolist())
+    weeks = sorted(weeks)
+    if not weeks:
+        st.error("لا توجد قيم في عمود week.")
+        st.stop()
+    selected_week = st.selectbox("اختر الجولة", weeks)
+    df = df[df['week'].astype(str).str.strip() == selected_week].copy()
+
+else:
+    # حالة: أعمدة week1, week2, ...
+    if not one_hot_week_cols:
+        st.error(" لا يوجد أعمدة للجولات تبدأ بـ week.")
+        st.stop()
+    selected_week = st.selectbox(" اختر الجولة", sorted(one_hot_week_cols))
+    week_series = df[selected_week]
+    if week_series.dtype == bool:
+        df = df[week_series].copy()
+    else:
+        week_numeric = pd.to_numeric(
+            week_series.replace({"True": 1, "False": 0, "Yes": 1, "No": 0}),
+            errors='coerce'
+        ).fillna(0)
+        df = df[week_numeric > 0].copy()
+
+# ✅ اختيار المباراة
+matches = sorted(df['team_vs'].dropna().unique().tolist())
+if not matches:
+    st.error("⚠️ لا توجد مباريات في هذه الجولة.")
+    st.stop()
+
+selected_match = st.selectbox(" اختر المباراة", matches)
+
+# ============================ #
+#          معالجة المباراة     #
+# ============================ #
+if selected_match:
+    df = df[df['team_vs'] == selected_match].copy()
+    df_match = df.copy()
+    st.session_state['df_match'] = df_match
+
+    t1, t2 = selected_match.split(" vs ")
+
+    if 'h_a' in df.columns:
+        ha = df[['teamName', 'h_a']].dropna()
         # تطبيع القيم المحتملة
         ha['h_a_norm'] = ha['h_a'].astype(str).str.lower().map({'h': 'h', 'a': 'a', 'home': 'h', 'away': 'a'})
         home_name = ha.loc[ha['h_a_norm'] == 'h', 'teamName']
@@ -6268,12 +6324,12 @@ elif analysis_type == "إحصائيات المباراة":
 elif analysis_type == "تحليل لاعب":
     st.markdown("### 👤 تحليل لاعب محدد")
 
-   selected_team_player = st.selectbox(" اختر الفريق", [hteam, ateam], key="xt_player_team")
+    selected_team_player = st.selectbox(" اختر الفريق", [hteam, ateam], key="xt_player_team")
 
     player_list = (
         df_match[df_match['teamName'] == selected_team_player]['shortName']
         .dropna().unique().tolist()
-    ) 
+    )
     selected_player = st.selectbox(" اختر اللاعب", sorted(player_list), key="xt_selected_player")
 
     # =============== خريطة xT (تمرير + حمل) ===============
@@ -6568,6 +6624,9 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
+
+
+
 
 
 
