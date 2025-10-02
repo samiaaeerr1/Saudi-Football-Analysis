@@ -6324,7 +6324,12 @@ elif analysis_type == "إحصائيات المباراة":
 elif analysis_type == "تحليل لاعب":
     st.markdown("### 👤 تحليل لاعب محدد")
 
-   
+   selected_team_player = st.selectbox(" اختر الفريق", [hteam, ateam], key="xt_player_team")
+
+    player_list = (
+        df_match[df_match['teamName'] == selected_team_player]['shortName']
+        .dropna().unique().tolist()
+    ) 
     selected_player = st.selectbox(" اختر اللاعب", sorted(player_list), key="xt_selected_player")
 
     # =============== خريطة xT (تمرير + حمل) ===============
@@ -6619,6 +6624,7 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
+
 
 
 
