@@ -20,6 +20,7 @@ from matplotlib.patches import Wedge
 from matplotlib.colors import to_rgba
 import colorsys
 from mplsoccer import Pitch
+import io
 
 from PIL import Image
 import base64
@@ -57,13 +58,14 @@ import streamlit as st
 import base64
 import streamlit as st
 
-import streamlit as st
+# مسار الصورة المحلي
+#local_image_path = r"C:\Users\aalturaidi\Downloads\WhatsApp Image 2025-08-11 at 10.23.35 PM.jpeg"
 
-st.markdown(
-    "<h1 style='text-align: center; font-size: 50px; color: lightgreen;'>تحليل الدوري السعودي</h1>",
-    unsafe_allow_html=True
-)
+# تحويل الصورة المحلية إلى Base64
+#with open(local_image_path, "rb") as img_file:
+#    encoded_image = base64.b64encode(img_file.read()).decode()
 
+# عرض الصورة + النص في الوسط بحجم أكبر
 
 
 # تحميل كلمات المرور المشفرة
@@ -98,7 +100,18 @@ path_eff = [path_effects.Stroke(linewidth=3, foreground=bg_color), path_effects.
 #pearl_earring_cmaph = LinearSegmentedColormap.from_list("Pearl Earring H", [bg_color, color_team1], N=20)
 #pearl_earring_cmapa = LinearSegmentedColormap.from_list("Pearl Earring A", [bg_color, color_team2], N=20)
 
+# رابط الصورة من GitHub (نسخة RAW)
+image_url = "https://raw.githubusercontent.com/Taleb1402/images/main/SAVEN%20(2).jpeg"
 
+# عرض الصورة في الوسط
+st.markdown(
+    f"""
+    <div style="text-align: center;">
+        <img src="{image_url}" width="250">
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 import streamlit as st
 
@@ -168,9 +181,6 @@ Field Tilt (%) = (Attacking Third Passes of Team) / (Attacking Third Passes of B
 </div>
 """, unsafe_allow_html=True)
 
-# 📂 رفع ملفات المباريات
-with st.expander("📂 رفع ملفات المباراة (CSV/Excel)"):
-    match_files = st.file_uploader("اسحب وأسقط الملفات هنا أو اختر من جهازك", type=["csv", "xlsx"], accept_multiple_files=True)
 
 
 
@@ -342,18 +352,31 @@ import streamlit as st
 import pandas as pd
 
 @st.cache_data(show_spinner=False)
-def load_data(url: str) -> pd.DataFrame:
-    df = pd.read_csv(url, low_memory=False)  # لتجنب DtypeWarning
+def load_csv(source, is_bytes=False) -> pd.DataFrame:
+    """تحميل بيانات CSV من ملف أو من رابط"""
+    if is_bytes:
+        df = pd.read_csv(io.BytesIO(source), low_memory=False, encoding="utf-8-sig")
+    else:
+        df = pd.read_csv(source, low_memory=False, encoding="utf-8-sig")
     df.columns = df.columns.str.strip()
     return df
 
-# ✅ استبدل رابط blob برابط RAW الصحيح
-url = "https://raw.githubusercontent.com/Taleb1402/streamlit-Sudia-competition/refs/heads/main/final_merged_with_teams_FIXED_competition.csv"
+
+# ========================= #
+# تحميل البيانات
+# ========================= #
+st.markdown("## 📂 تحميل بيانات المباراة")
+
+uploaded = st.file_uploader("⬆️ ارفع ملف CSV للمباراة", type=["csv"])
+if uploaded is None:
+    st.warning("⚠️ يرجى رفع ملف CSV يحتوي على مباراة واحدة.")
+    st.stop()
+
 try:
-    df = load_data(url)
-    st.success(f"تم تحميل البيانات ✅ عدد الصفوف: {len(df):,}")
+    df = load_csv(uploaded.getvalue(), is_bytes=True)
+    st.success(f"✅ تم تحميل الملف بنجاح — عدد الصفوف: {len(df):,}")
 except Exception as e:
-    st.error(f" حدث خطأ أثناء تحميل البيانات: {e}")
+    st.error(f"❌ خطأ أثناء تحميل الملف: {e}")
     st.stop()
 
 # ============================ #
@@ -391,12 +414,7 @@ df['type_value_Own goal'] = pd.to_numeric(
 ).fillna(0)
 
 # ✅ عمود البطولة
-if 'competition' not in df.columns:
-    st.info("ℹ لا يوجد عمود للبطولة في الملف — أدخِلها يدويًا لجميع الصفوف.")
-    comp_input = st.text_input("أدخل اسم البطولة يدويًا:", "")
-    df['competition'] = comp_input
-else:
-    df['competition'] = df['competition'].astype(str).str.strip()
+
 
 # ✅ عمود team_vs
 if 'team_vs' not in df.columns:
@@ -412,44 +430,6 @@ if 'team_vs' not in df.columns:
 # ============================ #
 #         اختيارات الواجهة     #
 # ============================ #
-competitions = sorted([c for c in df['competition'].dropna().unique().tolist() if str(c).strip() != ""])
-if not competitions:
-    st.warning(" الرجاء إدخال اسم البطولة أولًا، ثم سيظهر الاختيار.")
-    st.stop()
-
-selected_competition = st.selectbox(" اختر البطولة", competitions)
-df = df[df['competition'] == selected_competition].copy()
-league_name = selected_competition
-
-# ✅ اختيار الجولة — يدعم الشكلين (عمود واحد أو عدة أعمدة)
-has_value_week_col = ('week' in df.columns)
-one_hot_week_cols = [c for c in df.columns if c.lower().startswith("week") and c.lower() != "week"]
-
-if has_value_week_col and not one_hot_week_cols:
-    # حالة: عمود واحد يحمل القيم (week1, week2, ...)
-    weeks = (df['week'].dropna().astype(str).str.strip().unique().tolist())
-    weeks = sorted(weeks)
-    if not weeks:
-        st.error("لا توجد قيم في عمود week.")
-        st.stop()
-    selected_week = st.selectbox("اختر الجولة", weeks)
-    df = df[df['week'].astype(str).str.strip() == selected_week].copy()
-
-else:
-    # حالة: أعمدة week1, week2, ...
-    if not one_hot_week_cols:
-        st.error(" لا يوجد أعمدة للجولات تبدأ بـ week.")
-        st.stop()
-    selected_week = st.selectbox(" اختر الجولة", sorted(one_hot_week_cols))
-    week_series = df[selected_week]
-    if week_series.dtype == bool:
-        df = df[week_series].copy()
-    else:
-        week_numeric = pd.to_numeric(
-            week_series.replace({"True": 1, "False": 0, "Yes": 1, "No": 0}),
-            errors='coerce'
-        ).fillna(0)
-        df = df[week_numeric > 0].copy()
 
 # ✅ اختيار المباراة
 matches = sorted(df['team_vs'].dropna().unique().tolist())
@@ -1186,7 +1166,7 @@ def draw_shotmap_both_teams(df, hteamName, ateamName, col1, col2, bg_color, line
     plot_events(hShotsdf[hShotsdf['type'] == 'MissedShots'], True,
                 color=col1, size=200, marker='o', edge=col1, fill=True)
     plot_events(hShotsdf[hShotsdf['type'] == 'ShotOnPost'], True,
-                color=col1, size=230, marker='^', edge=col1, fill=True)
+                color=col1, size=230, marker='o', edge=col1, fill=True)
     plot_events(hShotsdf[hShotsdf['type'] == 'SavedShot'], True,
                 color='none', size=200, marker='o', edge=col1, fill=False)
     plot_events(hogdf, True,
@@ -1198,7 +1178,7 @@ def draw_shotmap_both_teams(df, hteamName, ateamName, col1, col2, bg_color, line
     plot_events(aShotsdf[aShotsdf['type'] == 'MissedShots'], False,
                 color=col2, size=200, marker='o', edge=col2, fill=True)
     plot_events(aShotsdf[aShotsdf['type'] == 'ShotOnPost'], False,
-                color=col2, size=230, marker='^', edge=col2, fill=True)
+                color=col2, size=230, marker='o', edge=col2, fill=True)
     plot_events(aShotsdf[aShotsdf['type'] == 'SavedShot'], False,
                 color='none', size=200, marker='o', edge=col2, fill=False)
     plot_events(aogdf, False,
@@ -6624,9 +6604,6 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
-
-
-
 
 
 
