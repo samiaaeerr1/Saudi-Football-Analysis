@@ -101,7 +101,11 @@ path_eff = [path_effects.Stroke(linewidth=3, foreground=bg_color), path_effects.
 #pearl_earring_cmapa = LinearSegmentedColormap.from_list("Pearl Earring A", [bg_color, color_team2], N=20)
 
 # رابط الصورة من GitHub (نسخة RAW)
-image_url = "https://raw.githubusercontent.com/Taleb1402/images/main/SAVEN%20(2).jpeg"
+# عنوان في الوسط وبحجم كبير
+st.markdown(
+    "<h1 style='text-align: center; font-size: 50px;'>تحليل الدوري السعودي</h1>",
+    unsafe_allow_html=True
+)
 
 # عرض الصورة في الوسط
 st.markdown(
@@ -3713,6 +3717,7 @@ def Final_third_entry(ax, df, team_name, color, bg_color, line_color, hteamName,
 
 def box_entry(ax, df, team_name, hteamName, ateamName, col, bg_color, line_color, is_away=False):
     
+
     pitch = Pitch(pitch_type='uefa', line_color=line_color, pitch_color=bg_color, linewidth=2)
     pitch.draw(ax=ax)
 
@@ -3762,6 +3767,20 @@ def box_entry(ax, df, team_name, hteamName, ateamName, col, bg_color, line_color
                                              zorder=4, mutation_scale=20, alpha=1, linewidth=2, linestyle='--'))
         ax.text(63, 73, ar(f'بالتمرير: {len(dfpass)}'), fontsize=14, color=col, ha='center')
         ax.text(93, 73, ar(f'بالحمل: {len(dfcarry)}'), fontsize=14, color=col, ha='center')
+
+
+# دالة جديدة لعرض دخول الفريقين معًا
+def box_entry_both(ax, df, hteam, ateam, col1, col2, bg_color, line_color):
+    """
+    دمج دخول منطقة الجزاء للفريقين في خريطة واحدة
+    """
+    box_entry(ax, df, hteam, hteam, ateam, col1, bg_color, line_color, is_away=False)
+    box_entry(ax, df, ateam, hteam, ateam, col2, bg_color, line_color, is_away=True)
+    ax.set_title(ar("دخول الفريقين إلى منطقة الجزاء"), fontsize=20, color=line_color, pad=20)
+
+
+
+
 
 
 def Crosses(ax, df, hteamName, ateamName, col1, col2, bg_color, line_color):
@@ -6194,110 +6213,85 @@ elif analysis_type == "إحصائيات المباراة":
 
 
             elif analysis_option == " التقرير الكامل (Report 1 + Report 2)":
-                with st.spinner(" يتم توليد التقرير الكامل"):
-                    # تقرير 1
-                                 
-                                  
-                    fig1, axs1 = plt.subplots(4, 3, figsize=(38, 38), facecolor=bg_color)
-                    pass_network(axs1[0, 0], hteam, col1, hteam, df_match, bg_color, line_color, ar)
-                    draw_shotmap_both_teams(df_match, hteam, ateam, col1, col2, bg_color, line_color, ax=axs1[0, 1])
+                try:
+                    with st.spinner(" يتم توليد التقرير الكامل"):
 
-                    pass_network(axs1[0, 2], ateam, col2, hteam, df_match, bg_color, line_color, ar)
-                    defensive_heatmap(axs1[1, 0], hteam, col1, df_match, bg_color, line_color)
-                    # خريطة التسديدات على الملعب (Shotmap)
+                        # -------- تقرير 1 --------
+                        fig1, axs1 = plt.subplots(4, 3, figsize=(38, 38), facecolor=bg_color)
 
-        
-                    Shotsdf = df_match[df_match['type'].isin(['Goal', 'SavedShot', 'ShotOnPost', 'MissedShots'])].reset_index(drop=True)
-                    plot_goalPost(axs1[1, 1], Shotsdf, hteam, ateam, col1, col2, bg_color, line_color)
-                    defensive_heatmap(axs1[1, 2], ateam, col2, df_match, bg_color, line_color)
-                    draw_progressive_pass_map(axs1[2, 0], hteam, col1, line_color)
-                    generate_and_plot_momentum(df_match, hteam, ateam, col1, col2, bg_color, line_color)(axs1[2, 1])
+                        pass_network(axs1[0, 0], hteam, col1, hteam, df_match, bg_color, line_color, ar)
+                        draw_shotmap_both_teams(df_match, hteam, ateam, col1, col2, bg_color, line_color, ax=axs1[0, 1])
+                        pass_network(axs1[0, 2], ateam, col2, hteam, df_match, bg_color, line_color, ar)
 
-                    draw_progressive_pass_map(axs1[2, 2], ateam, col2, line_color)
-                       # الحملات التقدمية للفريق المستضيف
-                    
-                   
-                    draw_progressive_carry_map(axs1[3, 0], hteam, col1, line_color)  # الحمولات التقدمية للمستضيف
-                    plotting_match_stats(axs1[3, 1], df_match, hteam, ateam, col1, col2, bg_color, line_color)  # الإحصائيات في الوسط
-                    draw_progressive_carry_map(axs1[3, 2], ateam, col2, line_color)  # الحمولات التقدمية للضيف
+                        defensive_heatmap(axs1[1, 0], hteam, col1, df_match, bg_color, line_color)
+                        Shotsdf = df_match[df_match['type'].isin(['Goal', 'SavedShot', 'ShotOnPost', 'MissedShots'])].reset_index(drop=True)
+                        plot_goalPost(axs1[1, 1], Shotsdf, hteam, ateam, col1, col2, bg_color, line_color)
+                        defensive_heatmap(axs1[1, 2], ateam, col2, df_match, bg_color, line_color)
 
-                    
-                    
-                    
-                    
-                    plt.tight_layout(pad=7.5)
-                    
+                        draw_progressive_pass_map(axs1[2, 0], hteam, col1, line_color)
+                        generate_and_plot_momentum(df_match, hteam, ateam, col1, col2, bg_color, line_color)(axs1[2, 1])
+                        draw_progressive_pass_map(axs1[2, 2], ateam, col2, line_color)
 
-                    fig_text(
-                    0.5, 1.03,
-                    league_name, color=line_color, fontsize=28, ha='center', ax=fig1
-)
-                    fig_text(
-                    0.5, 0.99,
-                     "Report - 1", color="#090909", fontsize=30, fontweight="bold", ha='center', ax=fig1
-)
-                    fig_text(
-                    0.5, 0.97, "Data: Opta | Create by: @Turadi_7", 
-                    color="#080808", fontsize=20, ha='center', ax=fig1
-)
+                        draw_progressive_carry_map(axs1[3, 0], hteam, col1, line_color)
+                        plotting_match_stats(axs1[3, 1], df_match, hteam, ateam, col1, col2, bg_color, line_color)
+                        draw_progressive_carry_map(axs1[3, 2], ateam, col2, line_color)
 
+                        
+                        
+                        
+                        fig_text(0.5, 1.03, "Full Match Tactical Report", color=line_color,
+                            fontsize=28, ha='center', ax=fig1)
+                        fig_text(0.5, 0.99, "Report 1", color="#090909",
+                            fontsize=30, fontweight="bold", ha='center', ax=fig1)
+                        fig_text(0.5, 0.97, "Data: Opta | Created by: @Turadi_7",
+                                    color="#080808", fontsize=20, ha='center', ax=fig1)
 
+                        # -------- تقرير 2 --------
+                        fig2, axs2 = plt.subplots(4, 3, figsize=(38, 38), facecolor=bg_color)
 
+                        Final_third_entry(axs2[0, 0], df_match, hteam, col1, bg_color, line_color, hteam, ateam, is_away=False)
+                        # داخل Report 2
+                        box_entry_both(axs2[0, 1], df_match, hteam, ateam, col1, col2, bg_color, line_color)
+                        
 
-                    # تقرير 2
-                    fig2, axs2 = plt.subplots(4, 3, figsize=(38, 38), facecolor=bg_color)
-                    Final_third_entry(axs2[0, 0], df_match, hteam, col1, bg_color, line_color, hteam, ateam, is_away=False)
-                    box_entry(axs2[0, 1], df_match, hteam, hteam, ateam, col1, bg_color, line_color, is_away=False)
-                    Final_third_entry(axs2[0, 2], df_match, ateam, col2, bg_color, line_color, hteam, ateam, is_away=True)
-                    zone14hs(axs2[1, 0], df_match, hteam, col1, bg_color, line_color, hteam, ateam)
-                    Crosses(axs2[1, 1], df_match, hteam, ateam, col1, col2, bg_color, line_color)
-                    zone14hs(axs2[1, 2], df_match, ateam, col2, bg_color, line_color, hteam, ateam)
-                    Pass_end_zone(axs2[2, 0], df_match, hteam, ateam, col=col1, bg_color=bg_color, line_color=line_color, col1=col1, col2=col2, hteamName=hteam)
-                    HighTO(axs2[2, 1], df_match, hteam, ateam, col1, col2, bg_color, line_color)
-                    
-                    Pass_end_zone(axs2[2, 2], df_match, ateam, ateam, col=col2, bg_color=bg_color, line_color=line_color, col1=col1, col2=col2, hteamName=hteam)
-                    Chance_creating_zone(axs2[3, 0], df_match, hteam, ateam, col=col1, bg_color=bg_color, line_color=line_color, col1=col1, col2=col2, hteamName=hteam)
+                        Final_third_entry(axs2[0, 2], df_match, ateam, col2, bg_color, line_color, hteam, ateam, is_away=True)
 
-                    plot_congestion(axs2[3, 1], df_match, hteam, ateam, col1, col2, bg_color, line_color)
-  
-                    Chance_creating_zone(axs2[3, 2], df_match, ateam, ateam, col=col2, bg_color=bg_color, line_color=line_color, col1=col1, col2=col2, hteamName=hteam)
+                        zone14hs(axs2[1, 0], df_match, hteam, col1, bg_color, line_color, hteam, ateam)
+                        Crosses(axs2[1, 1], df_match, hteam, ateam, col1, col2, bg_color, line_color)
+                        zone14hs(axs2[1, 2], df_match, ateam, col2, bg_color, line_color, hteam, ateam)
 
-                    # عنوان التقرير الثاني
-                    fig_text(
-                    0.5, 0.98, f"{league_name}", 
-                    color=line_color, fontsize=28, ha='center', ax=fig2
-)
-                    fig_text(
-                    0.5, 0.95, "Report - 2", 
-                    color="#030303", fontsize=30, fontweight="bold", ha='center', ax=fig2
-)
-                    fig_text(
-                    0.5, 0.92, "Data: Opta | Create by: @Turadi_7", 
-                    color="#090909", fontsize=20, ha='center', ax=fig2
-)
+                        Pass_end_zone(axs2[2, 0], df_match, hteam, ateam, col=col1, bg_color=bg_color, line_color=line_color, col1=col1, col2=col2, hteamName=hteam)
+                        HighTO(axs2[2, 1], df_match, hteam, ateam, col1, col2, bg_color, line_color)
+                        Pass_end_zone(axs2[2, 2], df_match, ateam, ateam, col=col2, bg_color=bg_color, line_color=line_color, col1=col1, col2=col2, hteamName=hteam)
 
+                        Chance_creating_zone(axs2[3, 0], df_match, hteam, ateam, col=col1, bg_color=bg_color, line_color=line_color, col1=col1, col2=col2, hteamName=hteam)
+                        plot_congestion(axs2[3, 1], df_match, hteam, ateam, col1, col2, bg_color, line_color)
+                        Chance_creating_zone(axs2[3, 2], df_match, ateam, ateam, col=col2, bg_color=bg_color, line_color=line_color, col1=col1, col2=col2, hteamName=hteam)
 
+                        
+                        
+                        fig_text(0.5, 0.98, "Full Match Tactical Report", color=line_color,
+                               fontsize=28, ha='center', ax=fig2)
+                        fig_text(0.5, 0.95, "Report 2", color="#030303",
+                              fontsize=30, fontweight="bold", ha='center', ax=fig2)
+                        fig_text(0.5, 0.92, "Data: Opta | Created by: @Turadi_7",
+                              color="#090909", fontsize=20, ha='center', ax=fig2)
 
+                        # عرض التقريرين
+                        col1_, col2_ = st.columns(2)
+                        with col1_:
+                            st.markdown("####  التقرير الأول")
+                            st.pyplot(fig1)
+                        with col2_:
+                            st.markdown("####  التقرير الثاني")
+                            st.pyplot(fig2)
 
-
-                    
-
-
-
-
-
-
-                # عرض التقريرين
-                col1_, col2_ = st.columns(2)
-                with col1_:
-                    st.markdown("####  التقرير الأول")
-                    st.pyplot(fig1)
-                with col2_:
-                    st.markdown("####  التقرير الثاني")
-                    st.pyplot(fig2)
+                except Exception as e:
+                    st.error(f" حدث خطأ أثناء توليد التقريرين: {e}")
 
         except Exception as e:
             st.error(f" حدث خطأ أثناء عرض التحليل: {e}")
+
 
 
 
@@ -6604,6 +6598,11 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
+
+
+
+
+
 
 
 
