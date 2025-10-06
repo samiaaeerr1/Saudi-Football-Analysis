@@ -108,14 +108,14 @@ st.markdown(
 )
 
 # عرض الصورة في الوسط
-st.markdown(
-    f"""
-    <div style="text-align: center;">
-        <img src="{image_url}" width="250">
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+#st.markdown(
+   # f"""
+   # <div style="text-align: center;">
+        #<img src="{image_url}" width="250">
+   # </div>
+   # """,
+   # unsafe_allow_html=True
+#)
 
 import streamlit as st
 
@@ -6598,6 +6598,7 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
+
 
 
 
