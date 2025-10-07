@@ -100,24 +100,12 @@ path_eff = [path_effects.Stroke(linewidth=3, foreground=bg_color), path_effects.
 #pearl_earring_cmaph = LinearSegmentedColormap.from_list("Pearl Earring H", [bg_color, color_team1], N=20)
 #pearl_earring_cmapa = LinearSegmentedColormap.from_list("Pearl Earring A", [bg_color, color_team2], N=20)
 
+import streamlit as st
+
 st.markdown(
-    """
-    <div style="
-        background-image: url('https://your-image-link.com/image.jpg');
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-position: center;
-        padding: 50px;
-        border-radius: 10px;
-    ">
-        <h1 style='text-align: center; font-size: 50px; color: #ffffff; background-color: rgba(0, 0, 0, 0.5); padding: 20px; border-radius: 10px;'>
-            تحليل كرة القدم السعودية
-        </h1>
-    </div>
-    """,
+    "<h1 style='text-align: center; font-size: 50px; color: #39FF14;'>تحليل كرة القدم السعودية</h1>",
     unsafe_allow_html=True
 )
-
 
 
 # عرض الصورة في الوسط
@@ -6611,6 +6599,7 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
+
 
 
 
