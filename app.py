@@ -102,14 +102,8 @@ path_eff = [path_effects.Stroke(linewidth=3, foreground=bg_color), path_effects.
 
 import streamlit as st
 
-# عرض الصورة داخل الواجهة باستخدام Streamlit مباشرة
 st.markdown(
-    """
-    <div style="text-align: center;">
-        <img src="3226676a-aaff-4149-a032-bd28986a7243.png" width="250">
-        <p style="font-weight:bold;">تحليل كرة القدم السعودية</p>
-    </div>
-    """,
+    "<h1 style='text-align: center; font-size: 50px; color: #39FF14;'>تحليل كرة القدم السعودية</h1>",
     unsafe_allow_html=True
 )
 
@@ -6606,6 +6600,7 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
+
 
 
 
