@@ -104,18 +104,11 @@ import streamlit as st
 
 
 
-image = Image.open('assets/saudi-football-analysis-image.jpeg')#تغير الصورة 
-
-col1, col2, col3 = st.columns([3, 6, 3])#تغير حجم الصورة
-
-with col1:
-    st.write(' ')
-
-with col2:
-    st.image(image, use_container_width=True)
-
-with col3:
-    st.write(' ')
+# عرض العنوان الرئيسي
+st.markdown(
+    "<h1 style='text-align: center; font-size: 50px; color: #39FF14;'>تحليل كرة القدم السعودية</h1>",
+    unsafe_allow_html=True
+)
 
 
 
