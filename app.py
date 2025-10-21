@@ -100,19 +100,18 @@ path_eff = [path_effects.Stroke(linewidth=3, foreground=bg_color), path_effects.
 #pearl_earring_cmaph = LinearSegmentedColormap.from_list("Pearl Earring H", [bg_color, color_team1], N=20)
 #pearl_earring_cmapa = LinearSegmentedColormap.from_list("Pearl Earring A", [bg_color, color_team2], N=20)
 
-# رابط الصورة من GitHub (نسخة RAW)
-image_url = "https://raw.githubusercontent.com/Taleb1402/images/main/SAVEN%20(2).jpeg"
+image = Image.open('assets/saudi-football-analysis-image.jpeg')#تغير الصورة 
 
-# عرض الصورة في الوسط
-st.markdown(
-    f"""
-    <div style="text-align: center;">
-        <img src="{image_url}" width="250">
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+col1, col2, col3 = st.columns([3, 6, 3])
 
+with col1:
+    st.write(' ')
+
+with col2:
+    st.image(image, use_container_width=True)
+
+with col3:
+    st.write(' ')
 import streamlit as st
 
 # إعداد الصفحة
@@ -6555,6 +6554,7 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
+
 
 
 
