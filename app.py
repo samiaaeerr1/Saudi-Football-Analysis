@@ -59,7 +59,7 @@ import base64
 import streamlit as st
 
 # مسار الصورة المحلي
-#local_image_path = r"C:\Users\aalturaidi\Downloads\WhatsApp Image 2025-08-11 at 10.23.35 PM.jpeg"
+#local_image_path = r"assets/ChatGPT Image 14 أكتوبر 2025، 09_47_04 ص.png"
 
 # تحويل الصورة المحلية إلى Base64
 #with open(local_image_path, "rb") as img_file:
@@ -100,28 +100,18 @@ path_eff = [path_effects.Stroke(linewidth=3, foreground=bg_color), path_effects.
 #pearl_earring_cmaph = LinearSegmentedColormap.from_list("Pearl Earring H", [bg_color, color_team1], N=20)
 #pearl_earring_cmapa = LinearSegmentedColormap.from_list("Pearl Earring A", [bg_color, color_team2], N=20)
 
-import streamlit as st
+image = Image.open('assets/دوري 1.jpg')#تغير الصورة 
 
+col1, col2, col3 = st.columns([3, 6, 3])
 
+with col1:
+    st.write(' ')
 
-# عرض العنوان الرئيسي
-st.markdown(
-    "<h1 style='text-align: center; font-size: 50px; color: #39FF14;'>تحليل كرة القدم السعودية</h1>",
-    unsafe_allow_html=True
-)
+with col2:
+    st.image(image, use_container_width=True)
 
-
-
-
-# عرض الصورة في الوسط
-#st.markdown(
-   # f"""
-   # <div style="text-align: center;">
-        #<img src="{image_url}" width="250">
-   # </div>
-   # """,
-   # unsafe_allow_html=True
-#)
+with col3:
+    st.write(' ')
 
 import streamlit as st
 
@@ -423,10 +413,7 @@ df['type_value_Own goal'] = pd.to_numeric(
     df.get('type_value_Own goal', pd.Series([0]*len(df))), errors='coerce'
 ).fillna(0)
 
-# ✅ عمود البطولة
-
-
-# ✅ عمود team_vs
+# ✅ إنشاء عمود team_vs
 if 'team_vs' not in df.columns:
     if {'teamName', 'oppositionTeamName'}.issubset(df.columns):
         df['team_vs'] = df.apply(
@@ -434,12 +421,35 @@ if 'team_vs' not in df.columns:
             axis=1
         )
     else:
-        st.error(" الملف لا يحتوي على أعمدة الفريقين.")
+        st.error("⚠️ الملف لا يحتوي على أعمدة الفريقين.")
         st.stop()
 
+
 # ============================ #
-#         اختيارات الواجهة     #
+# اختيارات الواجهة             #
 # ============================ #
+# ============================ #
+# تحديد الشوط المطلوب بشكل دقيق #
+# ============================ #
+if "minute" not in df.columns:
+    st.warning("⚠️ لا يوجد عمود 'minute' لتحديد الشوط، سيتم استخدام المباراة كاملة.")
+    df_selected = df.copy()
+else:
+    half_option = st.radio(
+        "⏱️ اختر الفترة:",
+        ["الشوط الأول", "الشوط الثاني", "المباراة كاملة"],
+        horizontal=True
+    )
+
+    if half_option == "الشوط الأول":
+        df_selected = df[(df["minute"] >= 0) & (df["minute"] < 45)]
+    elif half_option == "الشوط الثاني":
+        df_selected = df[(df["minute"] >= 45) & (df["minute"] <= 90)]
+    else:
+        df_selected = df.copy()
+
+
+df = df_selected.copy()
 
 # ✅ اختيار المباراة
 matches = sorted(df['team_vs'].dropna().unique().tolist())
@@ -447,7 +457,9 @@ if not matches:
     st.error("⚠️ لا توجد مباريات في هذه الجولة.")
     st.stop()
 
-selected_match = st.selectbox(" اختر المباراة", matches)
+selected_match = st.selectbox("⚽ اختر المباراة", matches)
+match_df = df[df['team_vs'] == selected_match]
+
 
 # ============================ #
 #          معالجة المباراة     #
@@ -1773,23 +1785,43 @@ from matplotlib.colors import to_rgba
 def draw_static_passing_network(df_match, team_name, opponent_name,
                                 bg_color='white', line_color='gray',
                                 highlight_color='red', node_edge_color='b'):
-
     import matplotlib.pyplot as plt
     import numpy as np
     import pandas as pd
     from matplotlib.colors import to_rgba
     from matplotlib.lines import Line2D
     from mplsoccer import Pitch
+    import arabic_reshaper
+    from bidi.algorithm import get_display
 
-    df_match['pass_receiver'] = df_match.get('pass_recipient', np.where(
-        (df_match['type'] == 'Pass') &
-        (df_match['outcomeType'] == 'Successful') &
-        (df_match['teamName'] == df_match['teamName'].shift(-1)),
-        df_match['name'].shift(-1),
-        np.nan
-    ))
-    df_match['pass_receiver'] = df_match['pass_receiver'].fillna('No')
-    df_match['minute'] = df_match['minute'].astype(int)
+    # ===== 1) تنظيف وتحويل الأعمدة =====
+    for c in ['name', 'teamName']:
+        if c in df_match.columns:
+            df_match[c] = df_match[c].astype(str).fillna("Unknown")
+
+    if 'minute' in df_match.columns:
+        df_match['minute'] = pd.to_numeric(df_match['minute'], errors='coerce').fillna(0).astype(int)
+    else:
+        df_match['minute'] = 0
+
+    if 'period' in df_match.columns:
+        df_match['period'] = pd.to_numeric(df_match['period'], errors='coerce').fillna(1).astype(int)
+        df_match.loc[df_match['period'] == 2, 'minute'] += 45
+
+    # ===== 2) تحديد المستقبل =====
+    if 'pass_recipient' in df_match.columns:
+        df_match['pass_receiver'] = df_match['pass_recipient'].astype(str).fillna("Unknown")
+    else:
+        df_match['pass_receiver'] = np.where(
+            (df_match['type'] == 'Pass') &
+            (df_match['outcomeType'] == 'Successful') &
+            (df_match['teamName'] == df_match['teamName'].shift(-1)),
+            df_match['name'].shift(-1),
+            np.nan
+        )
+        df_match['pass_receiver'] = df_match['pass_receiver'].astype(str).fillna("Unknown")
+
+    # ===== 3) إنشاء فترات 15 دقيقة =====
     df_match['interval'] = pd.cut(
         df_match['minute'],
         bins=[0, 15, 30, 45, 60, 75, 90],
@@ -1797,203 +1829,119 @@ def draw_static_passing_network(df_match, team_name, opponent_name,
         right=False
     )
 
-    interval_labels = ["0-15'", "15-30'", "30-45'", "45-60'", "60-75'", "75-90'"]
-    subs_dict = df_match[(df_match['type'] == 'SubstitutionOn') & 
-                         (df_match['teamName'] == team_name)][['name', 'minute']]
-    subs_dict = dict(zip(subs_dict['name'], subs_dict['minute']))
+    # ===== 4) تحديد البدلاء الحقيقيين =====
+    team_events = df_match[df_match['teamName'] == team_name]
+    first_appearance = (
+        team_events.groupby('name')['minute']
+        .min()
+        .reset_index()
+        .rename(columns={'minute': 'first_minute'})
+    )
+    first_appearance['is_sub'] = first_appearance['first_minute'] > 45
+    df_match = df_match.merge(first_appearance, on='name', how='left')
 
+    # ===== 5) إعداد الشكل العام =====
     fig, axes = plt.subplots(2, 3, figsize=(24, 15), facecolor=bg_color)
     axes = axes.flatten()
+    interval_labels = ["0-15'", "15-30'", "30-45'", "45-60'", "60-75'", "75-90'"]
+    interval_comments = []
 
     passes_team_all = df_match[
-        (df_match['type'] == 'Pass') & 
-        (df_match['outcomeType'] == 'Successful') & 
+        (df_match['type'] == 'Pass') &
+        (df_match['outcomeType'] == 'Successful') &
         (df_match['teamName'] == team_name)
     ]
 
-    sent = passes_team_all['name'].value_counts()
-    received = passes_team_all['pass_receiver'].value_counts()
-    involvement = (sent + received).fillna(0).sort_values(ascending=False).head(5)
-    top_involved_players = involvement.index.tolist()
-
-    interval_comments = []
-
+    # ===== 6) رسم الشبكات لكل فترة =====
     for i, interval in enumerate(interval_labels):
         ax = axes[i]
-        interval_max = int(interval.split('-')[1].replace("'", ""))
+        pass_df_full = passes_team_all[passes_team_all['interval'] == interval]
 
-        if 'isFirstEleven' in df_match.columns:
-            starting_players = df_match[
-                (df_match['teamName'] == team_name) & 
-                (df_match['isFirstEleven'] == True)
-            ]['name'].unique().tolist()
-        else:
-            starting_players = df_match[
-                (df_match['teamName'] == team_name) & 
-                (df_match['minute'] <= 5)
-            ]['name'].unique().tolist()
-
-        substitutes_on = df_match[
-            (df_match['teamName'] == team_name) & 
-            (df_match['type'] == 'SubstitutionOn') & 
-            (df_match['minute'] <= interval_max)
-        ]['name'].tolist()
-
-        valid_players = set(starting_players + substitutes_on)
-
-        subs_off = df_match[
-            (df_match['teamName'] == team_name) & 
-            (df_match['type'] == 'SubstitutionOff') & 
-            (df_match['minute'] <= interval_max)
-        ]['name'].tolist()
-
-        valid_players = valid_players - set(subs_off)
-        valid_players = list(valid_players)
-
-        pass_df_full = passes_team_all[(passes_team_all['interval'] == interval)]
         if pass_df_full.empty:
-            ax.set_facecolor(bg_color)
-            ax.set_title(interval, color=line_color)
             ax.axis('off')
+            ax.set_title(interval, color=line_color)
             interval_comments.append(f"🕒 {interval}: لا توجد تمريرات في هذه الفترة.")
             continue
 
-        pass_df = pass_df_full[['name', 'pass_receiver']].reset_index(drop=True)
-        pass_counts_df = pass_df.groupby(['name', 'pass_receiver']).size().reset_index(name='pass_count')
+        pass_counts_df = pass_df_full.groupby(['name', 'pass_receiver']).size().reset_index(name='pass_count')
 
-        df_match['interval'] = df_match['interval'].astype(str)  # ✅ تأكد أن الأعمدة متوافقة في النوع
+        # ===== تموضع اللاعبين (بدون تكرار) =====
+        players_involved = pd.unique(pass_counts_df[['name', 'pass_receiver']].values.ravel('K'))
+        player_positions = (
+            df_match[(df_match['teamName'] == team_name) & (df_match['name'].isin(players_involved))]
+            .groupby('name')[['x', 'y']].median()
+            .rename(columns={'x': 'avg_x', 'y': 'avg_y'})
+            .reset_index()
+        )
 
+        # ===== إزالة التكرارات نهائيًا =====
+        player_positions = player_positions.drop_duplicates(subset=['name'], keep='first')
 
-        player_positions = df_match[
-            (df_match['teamName'] == team_name) &
-            (df_match['name'].isin(valid_players))
-        ].groupby('name')[['x', 'y']].median().rename(columns={'x': 'avg_x', 'y': 'avg_y'})
-
-
-
-        avg_locs_df = pd.DataFrame({'name': list(valid_players)})
-        avg_locs_df = avg_locs_df[avg_locs_df['name'].notna() & (avg_locs_df['name'] != '')]
-
-        avg_locs_df = avg_locs_df.merge(player_positions, on='name', how='left')
-        avg_locs_df['avg_x'] = avg_locs_df['avg_x'].fillna(60)
-        avg_locs_df['avg_y'] = avg_locs_df['avg_y'].fillna(40)
-        # تقييد التموضع داخل الملعب لتفادي الزوايا
-        avg_locs_df['avg_x'] = avg_locs_df['avg_x'].clip(lower=10, upper=105)
-        avg_locs_df['avg_y'] = avg_locs_df['avg_y'].clip(lower=5, upper=65)
-
-        avg_locs_df['short_name'] = avg_locs_df['name'].apply(lambda x: ''.join([n[0] for n in str(x).split()]) if pd.notnull(x) else '')
-
-        all_involved_names = avg_locs_df['name'].unique() 
-        
-        pass_counts_sent = pass_counts_df.groupby('name')['pass_count'].sum()
-        pass_counts_received = pass_counts_df.groupby('pass_receiver')['pass_count'].sum()
-        player_pass_counts = (pass_counts_sent.add(pass_counts_received, fill_value=0)
-                              .reindex(all_involved_names, fill_value=0)
-                              .reset_index())
-        player_pass_counts.columns = ['name', 'total_passes']
-        
-        avg_locs_df = avg_locs_df.merge(player_pass_counts, on='name', how='left')
-        avg_locs_df['total_passes'] = avg_locs_df['total_passes'].fillna(0)
-        avg_locs_df['marker_size'] = avg_locs_df['total_passes'].apply(lambda x: 100 + 500 * np.log1p(x))
-        avg_locs_df['marker_size'] = avg_locs_df['marker_size'].clip(lower=300)  # ✅ لتفادي الدوائر الصغيرة جدًا
-        avg_locs_df['marker_size'] = avg_locs_df['marker_size'].replace(0, 300)  # ✅ لإجبار ظهور أي لاعب حتى لو لم يمرر
+        total_passes = pass_counts_df.groupby('name')['pass_count'].sum().reset_index()
+        avg_locs_df = pd.merge(player_positions, total_passes, on='name', how='left').fillna(0)
+        avg_locs_df['marker_size'] = avg_locs_df['pass_count'].apply(lambda x: 100 + 500 * np.log1p(x))
 
         pitch = Pitch(pitch_type='uefa', pitch_color=bg_color, line_color='black')
         pitch.draw(ax=ax)
 
+        # ===== دمج المرسل والمستقبل =====
         pass_counts_df = pd.merge(pass_counts_df, avg_locs_df, on='name', how='inner')
         pass_counts_df = pd.merge(pass_counts_df, avg_locs_df, left_on='pass_receiver', right_on='name',
                                   how='inner', suffixes=('', '_receiver'))
-
         pass_counts_df = pass_counts_df[pass_counts_df['pass_count'] >= 2]
 
+        # ===== رسم الخطوط =====
         if not pass_counts_df.empty:
-            pass_counts_df.rename(columns={'avg_x_receiver': 'receiver_avg_x', 'avg_y_receiver': 'receiver_avg_y'}, inplace=True)
-            pass_counts_df['width'] = pass_counts_df.pass_count / pass_counts_df.pass_count.max() * 20
+            pass_counts_df['width'] = pass_counts_df['pass_count'] / pass_counts_df['pass_count'].max() * 20
             top_pairs = pass_counts_df.sort_values(by='pass_count', ascending=False).head(5)
             top_pairs_list = list(zip(top_pairs['name'], top_pairs['pass_receiver']))
-            linewidths = []
             colors = []
-
             for _, row in pass_counts_df.iterrows():
-                if (row['name'], row['pass_receiver']) in top_pairs_list:
-                    linewidth = np.clip(row['pass_count'] * 0.7, 2, 10)
-                    color_rgba = np.array(to_rgba(highlight_color)); color_rgba[3] = 0.9
-                else:
-                    linewidth = np.clip(row['pass_count'] * 0.4, 0.5, 2.5)  # اجعلها أضعف للتمريرات العادية
-                    color_rgba = np.array(to_rgba(line_color)); color_rgba[3] = 0.4
+                color_rgba = np.array(to_rgba(highlight_color if (row['name'], row['pass_receiver']) in top_pairs_list else line_color))
+                color_rgba[3] = 0.9 if (row['name'], row['pass_receiver']) in top_pairs_list else 0.4
                 colors.append(color_rgba)
 
-            pitch.lines(pass_counts_df.avg_x, pass_counts_df.avg_y,
-                        pass_counts_df.receiver_avg_x, pass_counts_df.receiver_avg_y,
-                        lw=pass_counts_df.width, color=colors, zorder=2, ax=ax)
+            pitch.lines(pass_counts_df['avg_x'], pass_counts_df['avg_y'],
+                        pass_counts_df['avg_x_receiver'], pass_counts_df['avg_y_receiver'],
+                        lw=pass_counts_df['width'], color=colors, zorder=2, ax=ax)
 
+        # ===== رسم اللاعبين =====
         for _, row in avg_locs_df.iterrows():
-            marker = 's' if 0 < subs_dict.get(row['name'], 0) <= interval_max else 'o'
-            fontsize = 14 if row['name'] in top_involved_players else 10
-            pitch.scatter(row['avg_x'], row['avg_y'], s=row['marker_size'], marker=marker,
-                          color=bg_color, edgecolor=node_edge_color, zorder=3, linewidth=2, ax=ax)
-            pitch.annotate(row['short_name'], xy=(row.avg_x, row.avg_y), c='black',
-                           ha='center', va='center', size=fontsize, ax=ax)
+            sub_status = first_appearance[first_appearance['name'] == row['name']]['is_sub'].values[0]
+            marker_shape = 's' if sub_status else 'o'
+            edge_color = 'gray' if sub_status else node_edge_color
+            text_color = 'dimgray' if sub_status else 'black'
+            size = row['marker_size'] * (0.8 if sub_status else 1.0)
+
+            pitch.scatter(row['avg_x'], row['avg_y'], s=size, marker=marker_shape,
+                          color=bg_color, edgecolor=edge_color, linewidth=2, zorder=3, ax=ax)
+            short = ''.join([n[0] for n in row['name'].split()])
+            pitch.annotate(short, xy=(row['avg_x'], row['avg_y']),
+                           c=text_color, ha='center', va='center', size=10, ax=ax)
 
         ax.set_title(interval, fontsize=16, color='black', pad=10)
 
         if not pass_counts_df.empty:
-            top_passes_text = "\n".join([
-                f"{row['name']} → {row['pass_receiver']}: {row['pass_count']}" 
-                for _, row in top_pairs.iterrows()
-            ])
-            ax.text(75, -10, top_passes_text, color='black', ha='right', va='center', fontsize=12)
-            interval_comments.append(f"🕒 {interval}: عدد التمريرات >2: {len(pass_counts_df)} | أفضل ثنائي: {top_pairs.iloc[0]['name']} → {top_pairs.iloc[0]['pass_receiver']} ({top_pairs.iloc[0]['pass_count']})")
-        else:
-            interval_comments.append(f"🕒 {interval}: لم تتجاوز أي علاقة تمريرية الحد المطلوب (3 تمريرات).")
+            top_text = "\n".join([f"{r['name']} → {r['pass_receiver']}: {r['pass_count']}" for _, r in top_pairs.iterrows()])
+            ax.text(75, -10, top_text, color='black', ha='right', va='center', fontsize=12)
+            interval_comments.append(f"🕒 {interval}: أقوى علاقة تمريرية: {top_pairs.iloc[0]['name']} → {top_pairs.iloc[0]['pass_receiver']} ({top_pairs.iloc[0]['pass_count']})")
 
-    
-    title_text = f"شبكة التمريرات: {team_name} ضد {opponent_name} حسب فترات كل 15 دقيقة\n(حجم الدائرة = عدد التمريرات، سمك الخط = العلاقة التمريرية)"
+    # ===== 7) العنوان والوسيلة =====
+    title_text = f"شبكة التمريرات: {team_name} ضد {opponent_name} حسب فترات كل 15 دقيقة"
+    bidi_title = get_display(arabic_reshaper.reshape(title_text))
+    fig.suptitle(bidi_title, color='black', fontsize=22)
 
-     # ✅ تعريب النص
-    reshaped_title = arabic_reshaper.reshape(title_text)
-    bidi_title = get_display(reshaped_title)
-    reshaped_title = arabic_reshaper.reshape(title_text)
-    bidi_title = get_display(reshaped_title)
-    fig.suptitle(bidi_title, color='black', fontsize=20)
-
-   
-    # --- تدرج الحجم High → Low تحت العنوان ---
-    legend_sizes = [100, 300, 600, 1000]
-    legend_x_positions = [0.35, 0.42, 0.49, 0.56]
-
-    for size, xpos in zip(legend_sizes, legend_x_positions):
-        ax_circle = fig.add_axes([xpos, 0.88, 0.03, 0.06])
-        ax_circle.set_xlim(0, 1)
-        ax_circle.set_ylim(0, 1)
-        ax_circle.axis('off')
-        ax_circle.scatter(0.5, 0.5, s=size, facecolor='none', edgecolors=node_edge_color, linewidths=2)
-
-    
-
-    low_text = get_display(arabic_reshaper.reshape("أقل عدد تمريرات"))
-    high_text = get_display(arabic_reshaper.reshape("أعلى عدد تمريرات"))
-    
-    fig.text(0.34, 0.915, low_text, color='black',
-         ha='right', va='center', fontsize=15, fontweight='bold')
-    
-    fig.text(0.615, 0.915, high_text, color='black',
-         ha='left', va='center', fontsize=15, fontweight='bold')
-    
-    # ✅ مفتاح الشكل الأساسي/البديل
-    starter_sub_text = get_display(arabic_reshaper.reshape("○ أساسي | □ بديل"))
-    fig.text(0.8, 0.035, starter_sub_text, color='black', ha='center', fontsize=22)
-    
-    top_link_text = get_display(arabic_reshaper.reshape("أقوى علاقة تمريرية من حيث العدد"))
-    line = Line2D([0.26, 0.36], [0.045, 0.045], color=highlight_color, linewidth=3, transform=fig.transFigure, figure=fig)
+    line = Line2D([0.3, 0.4], [0.04, 0.04], color=highlight_color, linewidth=3, transform=fig.transFigure, figure=fig)
     fig.add_artist(line)
-    fig.text(0.37, 0.043, top_link_text, color='black', fontsize=22, ha='left', va='center')
+    fig.text(0.42, 0.04, get_display(arabic_reshaper.reshape("أقوى علاقة تمريرية")), color='black', fontsize=20, ha='left', va='center')
+    fig.text(0.88, 0.04, get_display(arabic_reshaper.reshape("○ أساسي   ☐ بديل")), fontsize=18, color='black', ha='right')
+    fig.text(0.97, 0.01, '@Turadi_7', color='gray', fontsize=22, ha='right', va='bottom', style='italic')
 
-  
-    fig.text(0.98, 0.01, '@Turadi_7', color='gray', fontsize=25, ha='right', va='bottom', style='italic')
+    # ===== 8) تحليل AI تلقائي =====
+    subs = first_appearance[first_appearance['is_sub']].sort_values('first_minute')
+    subs_text = "، ".join([f"{n} ({m}')" for n, m in zip(subs['name'], subs['first_minute'])]) or "لا يوجد بدلاء للفريق."
+    ai_comment = "### 🧠 تحليل AI\n" + "\n".join(interval_comments) + f"\n\n**البدلاء:** {subs_text}"
 
-    ai_comment = "###  تحليل AI لشبكة التمريرات:\n\n" + "\n\n".join(interval_comments)
     return fig, ai_comment
 
 
@@ -2002,13 +1950,21 @@ def draw_static_passing_network(df_match, team_name, opponent_name,
 
 
 
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+from matplotlib.colors import LinearSegmentedColormap
+import arabic_reshaper
+from bidi.algorithm import get_display
 
+# ==============================================================
+# 🎯 دالة رسم مصفوفة التمريرات بالعربية مع إظهار اسم الفريق المختار
+# ==============================================================
 
-
-
-# تعريف الدالة مع ربط الألوان الخاصة بكل فريق تلقائيًا
 def draw_pass_matrix_arabic(df_match, team1, color_low='#b5ffe1', color_high='#0099ff'):
     df_match['minute'] = df_match['minute'].astype(int)
+
+    # تحديد اللاعب المستقبل للتمريرات
     df_match['pass_receiver'] = np.where(
         (df_match['type'] == 'Pass') & 
         (df_match['outcomeType'] == 'Successful') & 
@@ -2018,51 +1974,60 @@ def draw_pass_matrix_arabic(df_match, team1, color_low='#b5ffe1', color_high='#0
     )
     df_match['pass_receiver'] = df_match['pass_receiver'].fillna('No')
 
+    # تصفية التمريرات للفريق المختار فقط
     passes_team1 = df_match[
         (df_match['type'] == 'Pass') &
         (df_match['outcomeType'] == 'Successful') &
         (df_match['teamName'] == team1) &
         (df_match['pass_receiver'] != 'No')
     ]
+
+    # بناء المصفوفة
     matrix = passes_team1.groupby(['name', 'pass_receiver']).size().unstack(fill_value=0)
 
+    # تعريب أسماء اللاعبين
     matrix.index = matrix.index.map(lambda x: get_display(arabic_reshaper.reshape(x)))
     matrix.columns = matrix.columns.map(lambda x: get_display(arabic_reshaper.reshape(x)))
 
-    # 🟡 استخدام الألوان المختارة من المستخدم
+    # 🎨 الألوان
     custom_cmap = LinearSegmentedColormap.from_list("custom_map", [color_low, color_high])
     
     fig, ax = plt.subplots(figsize=(15, 13))
-    sns.heatmap(matrix, annot=True, fmt="d", cmap=custom_cmap, cbar=True,
-                linewidths=0.7, linecolor='gray', annot_kws={"fontsize": 10}, ax=ax)
+    sns.heatmap(
+        matrix, annot=True, fmt="d", cmap=custom_cmap, cbar=True,
+        linewidths=0.7, linecolor='gray', annot_kws={"fontsize": 10}, ax=ax
+    )
 
-    title_text = get_display(arabic_reshaper.reshape("خريطة التمريرات بين لاعبي الفريق"))
+    # 🟢 إضافة اسم الفريق المختار في العنوان
+    team_display = get_display(arabic_reshaper.reshape(team1))
+    title_text = get_display(arabic_reshaper.reshape(f"مصفوفة التمريرات: {team1}"))
     xlabel = get_display(arabic_reshaper.reshape("اللاعب المستقبل"))
     ylabel = get_display(arabic_reshaper.reshape("اللاعب المرسل"))
 
-    ax.set_title(title_text, fontsize=20)
+    ax.set_title(title_text, fontsize=20, pad=20, color="#333333")
     ax.set_xlabel(xlabel, fontsize=16)
     ax.set_ylabel(ylabel, fontsize=16)
     ax.tick_params(axis='x', rotation=45)
     ax.tick_params(axis='y', rotation=0)
 
-    # عنوان علوي
-    arabic_header = get_display(arabic_reshaper.reshape("مصفوفة التمريرات للفريق المختار"))
-    fig.text(0.5, 0.98, arabic_header, ha='center', va='top', fontsize=18, fontweight='bold', color='black')
-
-    # ✅ تحليل AI بعد رسم المصفوفة
-    total_passes = matrix.values.sum()
-    top_pair = matrix.stack().idxmax()
-    top_value = matrix.stack().max()
-
-    comment = f"""
-    ###  تعليق AI على مصفوفة التمريرات:
-
-    - عدد التمريرات الكلي للفريق هو **{int(total_passes)}** تمريرة.
-    - أكثر تمريرات بين لاعبين كانت من **{top_pair[0]}** إلى **{top_pair[1]}** بعدد **{int(top_value)}** تمريرة.
-    """
+    # 🟡 عنوان علوي أنيق يشمل الفريق
     
+    # ✅ تحليل AI بعد الرسم
+    total_passes = matrix.values.sum()
+    if total_passes > 0:
+        top_pair = matrix.stack().idxmax()
+        top_value = matrix.stack().max()
+        comment = f"""
+        ### 🤖 تحليل AI للفريق **{team1}**:
+
+        - عدد التمريرات الكلي للفريق هو **{int(total_passes)}** تمريرة.
+        - أكثر تمريرات بين لاعبين كانت من **{top_pair[0]}** إلى **{top_pair[1]}** بعدد **{int(top_value)}** تمريرة.
+        """
+    else:
+        comment = f"❌ لا توجد تمريرات ناجحة للفريق **{team1}** في هذه الفترة."
+
     return fig, comment
+
 def plot_congestion(df, hteamName, ateamName, col1, col2, bg_color, line_color, ax):
             from highlight_text import ax_text
             pcmap = LinearSegmentedColormap.from_list("Pearl Earring - 10 colors",  [col2, 'gray', col1], N=20)
@@ -6604,15 +6569,6 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
-
-
-
-
-
-
-
-
-
 
 
 
