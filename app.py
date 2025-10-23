@@ -59,7 +59,7 @@ import base64
 import streamlit as st
 
 # مسار الصورة المحلي
-#local_image_path = r"C:\Users\aalturaidi\Downloads\WhatsApp Image 2025-08-11 at 10.23.35 PM.jpeg"
+#local_image_path = r"assets/ChatGPT Image 14 أكتوبر 2025، 09_47_04 ص.png"
 
 # تحويل الصورة المحلية إلى Base64
 #with open(local_image_path, "rb") as img_file:
@@ -100,7 +100,7 @@ path_eff = [path_effects.Stroke(linewidth=3, foreground=bg_color), path_effects.
 #pearl_earring_cmaph = LinearSegmentedColormap.from_list("Pearl Earring H", [bg_color, color_team1], N=20)
 #pearl_earring_cmapa = LinearSegmentedColormap.from_list("Pearl Earring A", [bg_color, color_team2], N=20)
 
-image = Image.open('assets/ChatGPT Image 14 أكتوبر 2025، 09_47_04 ص.png')#تغير الصورة 
+image = Image.open('assets/دوري 1.jpg')#تغير الصورة 
 
 col1, col2, col3 = st.columns([3, 6, 3])
 
@@ -112,7 +112,6 @@ with col2:
 
 with col3:
     st.write(' ')
-
 
 import streamlit as st
 
@@ -2876,69 +2875,83 @@ def offensive_actions(ax, pname):
         
 
 def pass_receiving_and_touchmap(ax, pname):
-    # بيانات اللاعب
-    playerdf = df[df['name'] == pname]
+            # Viz Dfs:
+            playerdf = df[df['name']==pname]
+            touch_df = playerdf[(playerdf['x']>0) & (playerdf['y']>0)]
+            pass_rec = df[(df['type']=='Pass') & (df['outcomeType']=='Successful') & (df['name'].shift(-1)==pname)]
+            # touch_df = pd.concat([acts_df, pass_rec], ignore_index=True)
+            actual_touch = playerdf[playerdf['isTouch']==1]
 
-    # 🔹 استخراج رقم القميص الحقيقي من العمود
-    if 'value_Jersey number.y' in playerdf.columns:
-        jersey_series = playerdf['value_Jersey number.y'].dropna()
-        if not jersey_series.empty:
-            shirt_number = str(int(jersey_series.iloc[0]))
-        else:
-            shirt_number = ""
-    else:
-        shirt_number = ""
+            fthd_tch = actual_touch[actual_touch['x']>=70]
+            penbox_tch = actual_touch[(actual_touch['x']>=88.5) & (actual_touch['y']>=13.6) & (actual_touch['y']<=54.4)]
 
-    # بيانات التمريرات واللمسات
-    touch_df = playerdf[(playerdf['x'] > 0) & (playerdf['y'] > 0)]
-    pass_rec = df[(df['type'] == 'Pass') & (df['outcomeType'] == 'Successful') & (df['name'].shift(-1) == pname)]
-    actual_touch = playerdf[playerdf['isTouch'] == 1]
+            fthd_rec = pass_rec[pass_rec['endX']>=70]
+            penbox_rec = pass_rec[(pass_rec['endX']>=88.5) & (pass_rec['endY']>=13.6) & (pass_rec['endY']<=54.4)]
 
-    fthd_tch = actual_touch[actual_touch['x'] >= 70]
-    penbox_tch = actual_touch[(actual_touch['x'] >= 88.5) & (actual_touch['y'] >= 13.6) & (actual_touch['y'] <= 54.4)]
+            pitch = VerticalPitch(pitch_type='uefa', corner_arcs=True, pitch_color=bg_color, line_color=line_color, linewidth=2, pad_bottom=27)
+            pitch.draw(ax=ax)
 
-    fthd_rec = pass_rec[pass_rec['endX'] >= 70]
-    penbox_rec = pass_rec[(pass_rec['endX'] >= 88.5) & (pass_rec['endY'] >= 13.6) & (pass_rec['endY'] <= 54.4)]
+            ax.scatter(touch_df.y, touch_df.x, marker='o', s=30, c='None', edgecolor=col2, lw=2)
+            if len(touch_df)>3:
+                # Calculate mean point
+                mean_point = np.mean(touch_df[['y', 'x']].values, axis=0)
+                
+                # Calculate distances from the mean point
+                distances = np.linalg.norm(touch_df[['y', 'x']].values - mean_point[None, :], axis=1)
+                
+                # Compute the interquartile range (IQR)
+                q1, q3 = np.percentile(distances, [20, 80])  # Middle 75%: 12.5th to 87.5th percentile
+                iqr_mask = (distances >= q1) & (distances <= q3)
+                
+                # Filter points within the IQR
+                points_within_iqr = touch_df[['y', 'x']].values[iqr_mask]
+                
+                # Check if we have enough points for a convex hull
+                if len(points_within_iqr) >= 3:
+                    hull = ConvexHull(points_within_iqr)
+                    for simplex in hull.simplices:
+                        ax.plot(points_within_iqr[simplex, 0], points_within_iqr[simplex, 1], color=col2, linestyle='--')
+                    ax.fill(points_within_iqr[hull.vertices, 0], points_within_iqr[hull.vertices, 1], 
+                            facecolor='none', edgecolor=col2, alpha=0.3, hatch='/////', zorder=1)
+                else:
+                    pass
+            else:
+                pass
 
-    # رسم الملعب
-    pitch = VerticalPitch(pitch_type='uefa', corner_arcs=True, pitch_color=bg_color, line_color=line_color, linewidth=2, pad_bottom=27)
-    pitch.draw(ax=ax)
+            ax.scatter(pass_rec.endY, pass_rec.endX, marker='o', s=30, c='None', edgecolor=col1, lw=2)
+            if len(touch_df)>4:
+                # Calculate mean point
+                mean_point = np.mean(pass_rec[['endY', 'endX']].values, axis=0)
+                
+                # Calculate distances from the mean point
+                distances = np.linalg.norm(pass_rec[['endY', 'endX']].values - mean_point[None, :], axis=1)
+                
+                # Compute the interquartile range (IQR)
+                q1, q3 = np.percentile(distances, [25, 75])  # Middle 75%: 12.5th to 87.5th percentile
+                iqr_mask = (distances >= q1) & (distances <= q3)
+                
+                # Filter points within the IQR
+                points_within_iqr = pass_rec[['endY', 'endX']].values[iqr_mask]
+                
+                # Check if we have enough points for a convex hull
+                if len(points_within_iqr) >= 3:
+                    hull = ConvexHull(points_within_iqr)
+                    for simplex in hull.simplices:
+                        ax.plot(points_within_iqr[simplex, 0], points_within_iqr[simplex, 1], color=col1, linestyle='--')
+                    ax.fill(points_within_iqr[hull.vertices, 0], points_within_iqr[hull.vertices, 1], 
+                            facecolor='none', edgecolor=col1, alpha=0.3, hatch='/////', zorder=1)
+                else:
+                    pass
+            else:
+                pass
 
-    # اللمسات
-    ax.scatter(touch_df.y, touch_df.x, marker='o', s=30, c='None', edgecolor=col2, lw=2)
-    if len(touch_df) > 3:
-        mean_point = np.mean(touch_df[['y', 'x']].values, axis=0)
-        distances = np.linalg.norm(touch_df[['y', 'x']].values - mean_point[None, :], axis=1)
-        q1, q3 = np.percentile(distances, [20, 80])
-        iqr_mask = (distances >= q1) & (distances <= q3)
-        points_within_iqr = touch_df[['y', 'x']].values[iqr_mask]
-        if len(points_within_iqr) >= 3:
-            hull = ConvexHull(points_within_iqr)
-            for simplex in hull.simplices:
-                ax.plot(points_within_iqr[simplex, 0], points_within_iqr[simplex, 1], color=col2, linestyle='--')
-            ax.fill(points_within_iqr[hull.vertices, 0], points_within_iqr[hull.vertices, 1],
-                    facecolor='none', edgecolor=col2, alpha=0.3, hatch='/////', zorder=1)
-
-    # تمريرات مستلمة
-    ax.scatter(pass_rec.endY, pass_rec.endX, marker='o', s=30, c='None', edgecolor=col1, lw=2)
-    if len(pass_rec) > 0:
-        avg_x = pass_rec['endX'].mean()
-        avg_y = pass_rec['endY'].mean()
-        ax.scatter(avg_y, avg_x, s=400, c=col1, edgecolor='white', lw=2, zorder=4)
-        if shirt_number != "":
-            ax.text(avg_y, avg_x, shirt_number, color='white', fontsize=13, fontweight='bold',
-                    ha='center', va='center', zorder=5)
-
-    # النصوص التوضيحية
-    ax_text(34, 110, '<Touches> & <Pass Receiving> Points', fontsize=20, fontweight='bold',
-            ha='center', va='center', highlight_textprops=[{'color': col2}, {'color': col1}])
-    ax.text(34, -5, f'Total Touches: {len(actual_touch)} | at Final Third: {len(fthd_tch)} | at Penalty Box: {len(penbox_tch)}', color=col2, fontsize=13, ha='center', va='center')
-    ax.text(34, -9, f'Total Pass Received: {len(pass_rec)} | at Final Third: {len(fthd_rec)} | at Penalty Box: {len(penbox_rec)}', color=col1, fontsize=13, ha='center', va='center')
-    ax.text(34, -17, '*blue area = middle 75% touches area', color=col2, fontsize=13, fontstyle='italic', ha='center', va='center')
-    ax.text(34, -21, '*red circle = avg receiving position (with shirt number)', color=col1, fontsize=13, fontstyle='italic', ha='center', va='center')
-
-    return
-
+            ax_text(34, 110, '<Touches> & <Pass Receiving> Points', fontsize=20, fontweight='bold', ha='center', va='center', 
+                    highlight_textprops=[{'color':col2}, {'color':col1}])
+            ax.text(34, -5, f'Total Touches: {len(actual_touch)} | at Final Third: {len(fthd_tch)} | at Penalty Box: {len(penbox_tch)}', color=col2, fontsize=13, ha='center', va='center')
+            ax.text(34, -9, f'Total Pass Received: {len(pass_rec)} | at Final Third: {len(fthd_rec)} | at Penalty Box: {len(penbox_rec)}', color=col1, fontsize=13, ha='center', va='center')
+            ax.text(34, -17, '*blue area = middle 75% touches area', color=col2, fontsize=13, fontstyle='italic', ha='center', va='center')
+            ax.text(34, -21, '*red area = middle 75% pass receiving area', color=col1, fontsize=13, fontstyle='italic', ha='center', va='center')
+            return
         
 
 def defensive_actions(ax, pname, df, team_color="#0099ff", bg_color="#ffffff", line_color="#000000"):
@@ -6556,7 +6569,6 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
-
 
 
 
