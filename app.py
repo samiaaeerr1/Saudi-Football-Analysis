@@ -100,7 +100,7 @@ path_eff = [path_effects.Stroke(linewidth=3, foreground=bg_color), path_effects.
 #pearl_earring_cmaph = LinearSegmentedColormap.from_list("Pearl Earring H", [bg_color, color_team1], N=20)
 #pearl_earring_cmapa = LinearSegmentedColormap.from_list("Pearl Earring A", [bg_color, color_team2], N=20)
 
-image = Image.open('assets/saudi-football-analysis-image.jpeg')#تغير الصورة 
+image = Image.open('assets/ChatGPT Image 14 أكتوبر 2025، 09_47_04 ص.png')#تغير الصورة 
 
 col1, col2, col3 = st.columns([3, 6, 3])
 
@@ -6565,6 +6565,7 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
+
 
 
 
