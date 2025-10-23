@@ -102,7 +102,7 @@ path_eff = [path_effects.Stroke(linewidth=3, foreground=bg_color), path_effects.
 
 image = Image.open('assets/دوري 1.jpg')#تغير الصورة 
 
-col1, col2, col3 = st.columns([3, 6, 3])
+col1, col2, col3 = st.columns([3, 6, 3])#حجم الصورة
 
 with col1:
     st.write(' ')
@@ -6569,6 +6569,7 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
+
 
 
 
