@@ -59,7 +59,7 @@ import base64
 import streamlit as st
 
 # مسار الصورة المحلي
-#local_image_path = r"assets/ChatGPT Image 14 أكتوبر 2025، 09_47_04 ص.png"
+#local_image_path = r"C:\Users\aalturaidi\Downloads\WhatsApp Image 2025-08-11 at 10.23.35 PM.jpeg"
 
 # تحويل الصورة المحلية إلى Base64
 #with open(local_image_path, "rb") as img_file:
@@ -100,18 +100,18 @@ path_eff = [path_effects.Stroke(linewidth=3, foreground=bg_color), path_effects.
 #pearl_earring_cmaph = LinearSegmentedColormap.from_list("Pearl Earring H", [bg_color, color_team1], N=20)
 #pearl_earring_cmapa = LinearSegmentedColormap.from_list("Pearl Earring A", [bg_color, color_team2], N=20)
 
-image = Image.open('assets/ChatGPT Image 14 أكتوبر 2025، 09_47_04 ص.png')#تغير الصورة 
+# رابط الصورة من GitHub (نسخة RAW)
+image_url = "https://raw.githubusercontent.com/Taleb1402/images/main/SAVEN%20(2).jpeg"
 
-col1, col2, col3 = st.columns([3, 6, 3])
-
-with col1:
-    st.write(' ')
-
-with col2:
-    st.image(image, use_container_width=True)
-
-with col3:
-    st.write(' ')
+# عرض الصورة في الوسط
+st.markdown(
+    f"""
+    <div style="text-align: center;">
+        <img src="{image_url}" width="250">
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 import streamlit as st
 
@@ -193,6 +193,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================
+
 # تحميل البيانات (استخدمه في صفحات التحليل فقط)
 # =========================
 @st.cache_data(show_spinner=False)
@@ -351,6 +352,23 @@ import pandas as pd
 import streamlit as st
 import pandas as pd
 
+import streamlit as st
+import pandas as pd
+import io
+
+# ========================= #
+# دالة تحميل البيانات
+# ========================= #
+# =========================
+# 📦 الاستيرادات الأساسية
+# =========================
+import streamlit as st
+import pandas as pd
+import io
+
+# =========================
+# ⚙️ دالة تحميل CSV (مع كاش)
+# =========================
 @st.cache_data(show_spinner=False)
 def load_csv(source, is_bytes=False) -> pd.DataFrame:
     """تحميل بيانات CSV من ملف أو من رابط"""
@@ -362,9 +380,9 @@ def load_csv(source, is_bytes=False) -> pd.DataFrame:
     return df
 
 
-# ========================= #
-# تحميل البيانات
-# ========================= #
+# =========================
+# 📂 تحميل بيانات المباراة
+# =========================
 st.markdown("## 📂 تحميل بيانات المباراة")
 
 uploaded = st.file_uploader("⬆️ ارفع ملف CSV للمباراة", type=["csv"])
@@ -372,6 +390,7 @@ if uploaded is None:
     st.warning("⚠️ يرجى رفع ملف CSV يحتوي على مباراة واحدة.")
     st.stop()
 
+# ✅ قراءة الملف فعليًا الآن
 try:
     df = load_csv(uploaded.getvalue(), is_bytes=True)
     st.success(f"✅ تم تحميل الملف بنجاح — عدد الصفوف: {len(df):,}")
@@ -379,14 +398,101 @@ except Exception as e:
     st.error(f"❌ خطأ أثناء تحميل الملف: {e}")
     st.stop()
 
+
+# =========================
+# 🔍 التأكد من عمود "Big Chance"
+# =========================
+possible_names = ['type_value_Big Chance', 'Big Chance', 'big_chance', 'type_BigChance']
+for col in df.columns:
+    if any(name.lower() in col.lower() for name in possible_names):
+        df.rename(columns={col: 'type_value_Big Chance'}, inplace=True)
+        break
+else:
+    df['type_value_Big Chance'] = 0
+
+
+# =========================
+# 🏟️ التحقق من الأعمدة الأساسية
+# =========================
+required_columns = ['type', 'name', 'teamName', 'oppositionTeamName']
+missing = [c for c in required_columns if c not in df.columns]
+if missing:
+    st.error(f"⚠️ الملف يفتقد الأعمدة الضرورية: {missing}")
+    st.stop()
+
+
+# =========================
+# ⚽ تعريف أسماء الفرق
+# =========================
+try:
+    hteam = df['teamName'].unique()[0]
+    ateam = df['teamName'].unique()[1]
+except Exception:
+    hteam, ateam = "Home Team", "Away Team"
+
+st.info(f"📊 التحليل بين: **{hteam} 🆚 {ateam}**")
+
 # ============================ #
-#  التحقق ومعالجة الأعمدة      #
+# 🟡 تعريف أسماء الفريقين
+# ============================ #
+try:
+    hteam = df['teamName'].unique()[0]   # الفريق المستضيف
+    ateam = df['teamName'].unique()[1]   # الفريق الضيف
+except Exception as e:
+    st.warning(f"⚠️ لم يتم التعرف على أسماء الفرق تلقائياً: {e}")
+    hteam = "Home Team"
+    ateam = "Away Team"
+
+st.info(f"🎯 الفريق المستضيف: **{hteam}** | الفريق الضيف: **{ateam}**")
+
+# ============================ #
+# التحقق من الأعمدة
 # ============================ #
 required_columns = ['type', 'name', 'playerId', 'teamName', 'oppositionTeamName']
 missing = [c for c in required_columns if c not in df.columns]
 if missing:
     st.error(f"⚠️ الملف يفتقد الأعمدة الضرورية: {missing}")
     st.stop()
+
+
+# ===========================
+# 🟢 معالجة عمود pass_receiver إذا لم يكن موجودًا
+# ===========================
+# ===========================
+# 🟢 إنشاء DataFrames لاستقبال التمريرات (Home & Away)
+# ===========================
+
+# إذا لم يكن هناك عمود pass_receiver نولده يدويًا
+if 'pass_receiver' not in df.columns:
+    df = df.sort_values(['teamName', 'minute', 'x', 'y'], ascending=True)
+    df['pass_receiver'] = df['name'].shift(-1)
+    df.loc[df['teamName'] != df['teamName'].shift(-1), 'pass_receiver'] = None
+
+# ✅ الفريق المستضيف
+if 'pass_receiver' in df.columns:
+    home_receiver_df = (
+        df[(df['teamName'] == hteam) & (df['type'] == 'Pass')]
+        .groupby('pass_receiver')
+        .size()
+        .reset_index(name='pass_count')
+        .sort_values('pass_count', ascending=False)
+        .rename(columns={'pass_receiver': 'name'})
+    )
+else:
+    home_receiver_df = pd.DataFrame({'name': [], 'pass_count': []})
+
+# ✅ الفريق الضيف
+if 'pass_receiver' in df.columns:
+    away_receiver_df = (
+        df[(df['teamName'] == ateam) & (df['type'] == 'Pass')]
+        .groupby('pass_receiver')
+        .size()
+        .reset_index(name='pass_count')
+        .sort_values('pass_count', ascending=False)
+        .rename(columns={'pass_receiver': 'name'})
+    )
+else:
+    away_receiver_df = pd.DataFrame({'name': [], 'pass_count': []})
 
 # ✅ تعبئة اسم اللاعب في حمل الكرة إذا مفقود
 df.loc[
@@ -556,6 +662,28 @@ else:
     st.warning(" الرجاء تحديد مباراة لتحليلها.")
 
 # =========================
+# ========================================
+# 🔹 تحديد أكثر لاعب استقبل تمريرات (Home Team)
+# ========================================
+if 'pass_receiver' in df.columns:
+    home_receiver_df = (
+        df[(df['teamName'] == hteam) & (df['type'] == 'Pass')]
+        .groupby('pass_receiver')
+        .size()
+        .reset_index(name='pass_count')
+        .sort_values('pass_count', ascending=False)
+        .rename(columns={'pass_receiver': 'name'})
+    )
+elif 'name' in df.columns:
+    home_receiver_df = (
+        df[(df['teamName'] == hteam) & (df['type'] == 'Pass')]
+        .groupby('name')
+        .size()
+        .reset_index(name='pass_count')
+        .sort_values('pass_count', ascending=False)
+    )
+else:
+    home_receiver_df = pd.DataFrame({'name': [], 'pass_count': []})
 
 # Stats
         
@@ -2329,154 +2457,397 @@ defender_df['shortName'] = defender_df['name'].apply(get_short_name)
         # Top Passer's PassMap
 import matplotlib.patches as patches
 from highlight_text import ax_text       
+from mplsoccer import Pitch
+import matplotlib.patches as patches
+from highlight_text import ax_text
+import pandas as pd
+
 def home_player_passmap(ax):
-            pitch = Pitch(pitch_type='uefa', corner_arcs=True, pitch_color=bg_color, line_color=line_color, linewidth=2)
-            pitch.draw(ax=ax)
-            ax.set_xlim(-0.5, 105.5)
-            ax.set_ylim(-0.5, 68.5)
-        
-            # taking the top home passer and plotting his passmap
-            home_player_name = home_progressor_df['name'].iloc[0]
-        
-            acc_pass = df[(df['name']==home_player_name) & (df['type']=='Pass') & (df['outcomeType']=='Successful')]
-            pro_pass = acc_pass[(acc_pass['prog_pass']>=9.11) & (acc_pass['x']>=35) & (acc_pass['type_value_Corner taken']!=6) & (acc_pass['type_value_Free kick taken']!=5)]
-            pro_carry = df[(df['name']==home_player_name) & (df['prog_carry']>=9.11) & (df['endX']>=35)]
-            key_pass = acc_pass[acc_pass['type_value_Assist']==210]
-            g_assist = acc_pass[acc_pass['assist']==1]
-        
-            pitch.lines(acc_pass.x, acc_pass.y, acc_pass.endX, acc_pass.endY, color=line_color, lw=2, alpha=0.15, comet=True, zorder=2, ax=ax)
-            pitch.lines(pro_pass.x, pro_pass.y, pro_pass.endX, pro_pass.endY, color=col1, lw=3, alpha=1,    comet=True, zorder=3, ax=ax)
-            pitch.lines(key_pass.x, key_pass.y, key_pass.endX, key_pass.endY, color=violet,     lw=4, alpha=1,    comet=True, zorder=4, ax=ax)
-            pitch.lines(g_assist.x, g_assist.y, g_assist.endX, g_assist.endY, color='green',      lw=4, alpha=1,    comet=True, zorder=5, ax=ax)
-        
-            ax.scatter(acc_pass.endX, acc_pass.endY, s=30, color=bg_color,    edgecolor='gray', alpha=1, zorder=2)
-            ax.scatter(pro_pass.endX, pro_pass.endY, s=40, color=bg_color,  edgecolor= col1,  alpha=1, zorder=3)
-            ax.scatter(key_pass.endX, key_pass.endY, s=50, color=bg_color,  edgecolor=violet, alpha=1, zorder=4)
-            ax.scatter(g_assist.endX, g_assist.endY, s=50, color=bg_color,  edgecolor= 'green', alpha=1, zorder=5)
-        
-            for index, row in pro_carry.iterrows():
-                arrow = patches.FancyArrowPatch((row['x'], row['y']), (row['endX'], row['endY']), arrowstyle='->', color=col1, zorder=4, mutation_scale=20, 
-                                                alpha=0.9, linewidth=2, linestyle='--')
-                ax.add_patch(arrow) 
-        
-        
-            home_name_show = home_progressor_df['shortName'].iloc[0]
-            ax.set_title(f"{home_name_show} PassMap", color=col1, fontsize=25, fontweight='bold', y=1.03)
-            ax.text(0,-3, f'Prog. Pass: {len(pro_pass)}          Prog. Carry: {len(pro_carry)}', fontsize=15, color=col1, ha='left', va='center')
-            ax_text(105,-3, s=f'Key Pass: {len(key_pass)}          <Assist: {len(g_assist)}>', fontsize=15, color=violet, ha='right', va='center',
-                    highlight_textprops=[{'color':'green'}], ax=ax)
-        
+    # 🎨 إعداد الملعب
+    pitch = Pitch(pitch_type='uefa', corner_arcs=True,
+                  pitch_color=bg_color, line_color=line_color, linewidth=2)
+    pitch.draw(ax=ax)
+    ax.set_xlim(-0.5, 105.5)
+    ax.set_ylim(-0.5, 68.5)
+
+    # 👤 تحديد اللاعب الأعلى تمريرًا
+    home_player_name = home_progressor_df['name'].iloc[0]
+
+    # 📊 تمريرات ناجحة
+    acc_pass = df[
+        (df['name'] == home_player_name) &
+        (df['type'] == 'Pass') &
+        (df['outcomeType'] == 'Successful')
+    ]
+
+    # 📈 تمريرات تقدمية
+    pro_pass = acc_pass[
+        (acc_pass.get('prog_pass', 0) >= 9.11) &
+        (acc_pass.get('x', 0) >= 35) &
+        (acc_pass.get('type_value_Corner taken', 0) != 6) &
+        (acc_pass.get('type_value_Free kick taken', 0) != 5)
+    ]
+
+    # 🚀 حمولات تقدمية
+    pro_carry = df[
+        (df['name'] == home_player_name) &
+        (df.get('prog_carry', 0) >= 9.11) &
+        (df.get('endX', 0) >= 35)
+    ]
+
+    # 🎯 تمريرات مفتاحية
+    key_pass = acc_pass[acc_pass.get('type_value_Assist', 0) == 210]
+
+    # 🅰️ تمريرات أدت إلى أهداف (مساعدات)
+    if 'assist' in acc_pass.columns:
+        g_assist = acc_pass[acc_pass['assist'] == 1]
+    else:
+        g_assist = pd.DataFrame()
+
+    # 🟢 تمريرات ناجحة عامة
+    if not acc_pass.empty and all(col in acc_pass.columns for col in ['x', 'y', 'endX', 'endY']):
+        pitch.lines(acc_pass['x'], acc_pass['y'], acc_pass['endX'], acc_pass['endY'],
+                    color=line_color, lw=2, alpha=0.15, comet=True, zorder=2, ax=ax)
+
+    # 🔵 تمريرات تقدمية
+    if not pro_pass.empty and all(col in pro_pass.columns for col in ['x', 'y', 'endX', 'endY']):
+        pitch.lines(pro_pass['x'], pro_pass['y'], pro_pass['endX'], pro_pass['endY'],
+                    color=col1, lw=3, alpha=1, comet=True, zorder=3, ax=ax)
+
+    # 🟣 تمريرات مفتاحية
+    if not key_pass.empty and all(col in key_pass.columns for col in ['x', 'y', 'endX', 'endY']):
+        pitch.lines(key_pass['x'], key_pass['y'], key_pass['endX'], key_pass['endY'],
+                    color=violet, lw=4, alpha=1, comet=True, zorder=4, ax=ax)
+
+    # 🟩 تمريرات أدت إلى أهداف (مع حماية كاملة)
+    if not g_assist.empty and all(col in g_assist.columns for col in ['x', 'y', 'endX', 'endY']):
+        pitch.lines(g_assist['x'], g_assist['y'], g_assist['endX'], g_assist['endY'],
+                    color='green', lw=4, alpha=1, comet=True, zorder=5, ax=ax)
+        ax.scatter(g_assist['endX'], g_assist['endY'], s=50, color=bg_color,
+                   edgecolor='green', alpha=1, zorder=5)
+
+    # ⚪ رسم نقاط النهاية
+    if not acc_pass.empty and 'endX' in acc_pass.columns and 'endY' in acc_pass.columns:
+        ax.scatter(acc_pass['endX'], acc_pass['endY'], s=30, color=bg_color,
+                   edgecolor='gray', alpha=1, zorder=2)
+
+    if not pro_pass.empty and 'endX' in pro_pass.columns and 'endY' in pro_pass.columns:
+        ax.scatter(pro_pass['endX'], pro_pass['endY'], s=40, color=bg_color,
+                   edgecolor=col1, alpha=1, zorder=3)
+
+    if not key_pass.empty and 'endX' in key_pass.columns and 'endY' in key_pass.columns:
+        ax.scatter(key_pass['endX'], key_pass['endY'], s=50, color=bg_color,
+                   edgecolor=violet, alpha=1, zorder=4)
+
+    # 🌀 الأسهم الخاصة بالحمل التقدمي
+    if not pro_carry.empty and all(col in pro_carry.columns for col in ['x', 'y', 'endX', 'endY']):
+        for _, row in pro_carry.iterrows():
+            arrow = patches.FancyArrowPatch(
+                (row['x'], row['y']),
+                (row['endX'], row['endY']),
+                arrowstyle='->', color=col1, zorder=4,
+                mutation_scale=20, alpha=0.9, linewidth=2, linestyle='--'
+            )
+            ax.add_patch(arrow)
+
+    # 🧠 عنوان وتحليل نصي
+    home_name_show = home_progressor_df['shortName'].iloc[0]
+    ax.set_title(f"{home_name_show} PassMap", color=col1,
+                 fontsize=25, fontweight='bold', y=1.03)
+
+    ax.text(0, -3,
+            f'Prog. Pass: {len(pro_pass)} | Prog. Carry: {len(pro_carry)}',
+            fontsize=15, color=col1, ha='left', va='center')
+
+    ax_text(105, -3,
+            s=f'Key Pass: {len(key_pass)} | <Assist: {len(g_assist)}>',
+            fontsize=15, color=violet, ha='right', va='center',
+            highlight_textprops=[{'color': 'green'}], ax=ax)
+
+from mplsoccer import Pitch
+import matplotlib.patches as patches
+from highlight_text import ax_text
+import pandas as pd
+
 def away_player_passmap(ax):
-            pitch = Pitch(pitch_type='uefa', corner_arcs=True, pitch_color=bg_color, line_color=line_color, linewidth=2)
-            pitch.draw(ax=ax)
-            ax.set_xlim(-0.5, 105.5)
-            ax.set_ylim(-0.5, 68.5)
-            ax.invert_xaxis()
-            ax.invert_yaxis()
-        
-            # taking the top away passer and plotting his passmap
-            away_player_name = away_progressor_df['name'].iloc[0]
-            
-            acc_pass = df[(df['name']==away_player_name) & (df['type']=='Pass') & (df['outcomeType']=='Successful')]
-            pro_pass = acc_pass[(acc_pass['prog_pass']>=9.11) & (acc_pass['x']>=35) & (acc_pass['type_value_Corner taken']!=6) & (acc_pass['type_value_Free kick taken']!=5)]
-            pro_carry = df[(df['name']==away_player_name) & (df['prog_carry']>=9.11) & (df['endX']>=35)]
-            key_pass = acc_pass[acc_pass['type_value_Assist']==210]
-            g_assist = acc_pass[acc_pass['assist']==1]
-        
-            pitch.lines(acc_pass.x, acc_pass.y, acc_pass.endX, acc_pass.endY, color=line_color, lw=2, alpha=0.15, comet=True, zorder=2, ax=ax)
-            pitch.lines(pro_pass.x, pro_pass.y, pro_pass.endX, pro_pass.endY, color=col2      , lw=3, alpha=1,    comet=True, zorder=3, ax=ax)
-            pitch.lines(key_pass.x, key_pass.y, key_pass.endX, key_pass.endY, color=violet,     lw=4, alpha=1,    comet=True, zorder=4, ax=ax)
-            pitch.lines(g_assist.x, g_assist.y, g_assist.endX, g_assist.endY, color='green',      lw=4, alpha=1,    comet=True, zorder=5, ax=ax)
-        
-            ax.scatter(acc_pass.endX, acc_pass.endY, s=30, color=bg_color,    edgecolor='gray', alpha=1, zorder=2)
-            ax.scatter(pro_pass.endX, pro_pass.endY, s=40, color=bg_color,  edgecolor= col2,  alpha=1, zorder=3)
-            ax.scatter(key_pass.endX, key_pass.endY, s=50, color=bg_color,  edgecolor=violet, alpha=1, zorder=4)
-            ax.scatter(g_assist.endX, g_assist.endY, s=50, color=bg_color,  edgecolor= 'green', alpha=1, zorder=5)
-        
-            for index, row in pro_carry.iterrows():
-                arrow = patches.FancyArrowPatch((row['x'], row['y']), (row['endX'], row['endY']), arrowstyle='->', color=col2, zorder=4, mutation_scale=20, 
-                                                alpha=0.9, linewidth=2, linestyle='--')
-                ax.add_patch(arrow) 
-        
-        
-            away_name_show = away_progressor_df['shortName'].iloc[0]
-            ax.set_title(f"{away_name_show} PassMap", color=col2, fontsize=25, fontweight='bold', y=1.03)
-            ax.text(0,71, f'Prog. Pass: {len(pro_pass)}          Prog. Carry: {len(pro_carry)}', fontsize=15, color=col2, ha='right', va='center')
-            ax_text(105,71, s=f'Key Pass: {len(key_pass)}          <Assist: {len(g_assist)}>', fontsize=15, color=violet, ha='left', va='center',
-                    highlight_textprops=[{'color':'green'}], ax=ax)
-            
+    # 🎨 إعداد الملعب
+    pitch = Pitch(pitch_type='uefa', corner_arcs=True,
+                  pitch_color=bg_color, line_color=line_color, linewidth=2)
+    pitch.draw(ax=ax)
+    ax.set_xlim(-0.5, 105.5)
+    ax.set_ylim(-0.5, 68.5)
+    ax.invert_xaxis()
+    ax.invert_yaxis()
+
+    # 👤 تحديد اللاعب الأعلى تمريرًا
+    away_player_name = away_progressor_df['name'].iloc[0]
+
+    # 📊 تمريرات ناجحة
+    acc_pass = df[
+        (df['name'] == away_player_name) &
+        (df['type'] == 'Pass') &
+        (df['outcomeType'] == 'Successful')
+    ]
+
+    # 📈 تمريرات تقدمية
+    pro_pass = acc_pass[
+        (acc_pass.get('prog_pass', 0) >= 9.11) &
+        (acc_pass.get('x', 0) >= 35) &
+        (acc_pass.get('type_value_Corner taken', 0) != 6) &
+        (acc_pass.get('type_value_Free kick taken', 0) != 5)
+    ]
+
+    # 🚀 حمولات تقدمية
+    pro_carry = df[
+        (df['name'] == away_player_name) &
+        (df.get('prog_carry', 0) >= 9.11) &
+        (df.get('endX', 0) >= 35)
+    ]
+
+    # 🎯 تمريرات مفتاحية
+    key_pass = acc_pass[acc_pass.get('type_value_Assist', 0) == 210]
+
+    # 🅰️ تمريرات أدت إلى أهداف (مساعدات)
+    if 'assist' in acc_pass.columns:
+        g_assist = acc_pass[acc_pass['assist'] == 1]
+    else:
+        g_assist = pd.DataFrame()
+
+    # 🟢 تمريرات ناجحة عامة
+    if not acc_pass.empty and all(col in acc_pass.columns for col in ['x', 'y', 'endX', 'endY']):
+        pitch.lines(acc_pass['x'], acc_pass['y'], acc_pass['endX'], acc_pass['endY'],
+                    color=line_color, lw=2, alpha=0.15, comet=True, zorder=2, ax=ax)
+
+    # 🔵 تمريرات تقدمية
+    if not pro_pass.empty and all(col in pro_pass.columns for col in ['x', 'y', 'endX', 'endY']):
+        pitch.lines(pro_pass['x'], pro_pass['y'], pro_pass['endX'], pro_pass['endY'],
+                    color=col2, lw=3, alpha=1, comet=True, zorder=3, ax=ax)
+
+    # 🟣 تمريرات مفتاحية
+    if not key_pass.empty and all(col in key_pass.columns for col in ['x', 'y', 'endX', 'endY']):
+        pitch.lines(key_pass['x'], key_pass['y'], key_pass['endX'], key_pass['endY'],
+                    color=violet, lw=4, alpha=1, comet=True, zorder=4, ax=ax)
+
+    # 🟩 تمريرات أدت إلى أهداف (مع حماية كاملة)
+    if not g_assist.empty and all(col in g_assist.columns for col in ['x', 'y', 'endX', 'endY']):
+        pitch.lines(g_assist['x'], g_assist['y'], g_assist['endX'], g_assist['endY'],
+                    color='green', lw=4, alpha=1, comet=True, zorder=5, ax=ax)
+        ax.scatter(g_assist['endX'], g_assist['endY'], s=50, color=bg_color,
+                   edgecolor='green', alpha=1, zorder=5)
+
+    # ⚪ نقاط نهاية التمريرات
+    if not acc_pass.empty and 'endX' in acc_pass.columns and 'endY' in acc_pass.columns:
+        ax.scatter(acc_pass['endX'], acc_pass['endY'], s=30, color=bg_color,
+                   edgecolor='gray', alpha=1, zorder=2)
+
+    if not pro_pass.empty and 'endX' in pro_pass.columns and 'endY' in pro_pass.columns:
+        ax.scatter(pro_pass['endX'], pro_pass['endY'], s=40, color=bg_color,
+                   edgecolor=col2, alpha=1, zorder=3)
+
+    if not key_pass.empty and 'endX' in key_pass.columns and 'endY' in key_pass.columns:
+        ax.scatter(key_pass['endX'], key_pass['endY'], s=50, color=bg_color,
+                   edgecolor=violet, alpha=1, zorder=4)
+
+    # 🌀 الأسهم الخاصة بالحمل التقدمي
+    if not pro_carry.empty and all(col in pro_carry.columns for col in ['x', 'y', 'endX', 'endY']):
+        for _, row in pro_carry.iterrows():
+            arrow = patches.FancyArrowPatch(
+                (row['x'], row['y']),
+                (row['endX'], row['endY']),
+                arrowstyle='->', color=col2, zorder=4,
+                mutation_scale=20, alpha=0.9, linewidth=2, linestyle='--'
+            )
+            ax.add_patch(arrow)
+
+    # 🧠 العنوان والنصوص التوضيحية
+    away_name_show = away_progressor_df['shortName'].iloc[0]
+    ax.set_title(f"{away_name_show} PassMap", color=col2,
+                 fontsize=25, fontweight='bold', y=1.03)
+
+    ax.text(0, 71,
+            f'Prog. Pass: {len(pro_pass)} | Prog. Carry: {len(pro_carry)}',
+            fontsize=15, color=col2, ha='right', va='center')
+
+    ax_text(105, 71,
+            s=f'Key Pass: {len(key_pass)} | <Assist: {len(g_assist)}>',
+            fontsize=15, color=violet, ha='left', va='center',
+            highlight_textprops=[{'color': 'green'}], ax=ax)
+
             
         # Forward Pass Receiving
         
+from mplsoccer import Pitch
+import pandas as pd
+from highlight_text import ax_text
+
 def home_passes_recieved(ax):
-            pitch = Pitch(pitch_type='uefa', corner_arcs=True, pitch_color=bg_color, line_color=line_color, linewidth=2)
-            pitch.draw(ax=ax)
-            ax.set_xlim(-0.5, 105.5)
-            ax.set_ylim(-0.5, 68.5)
+    # ملعب
+    pitch = Pitch(pitch_type='uefa', corner_arcs=True,
+                  pitch_color=bg_color, line_color=line_color, linewidth=2)
+    pitch.draw(ax=ax)
+    ax.set_xlim(-0.5, 105.5)
+    ax.set_ylim(-0.5, 68.5)
+
+    # اسم اللاعب (المهاجم) + الاسم المختصر
+    name = home_Forward
+    name_show = get_short_name(name) if callable(get_short_name) else str(name)
+
+    # أعمدة قد تكون مفقودة في بعض الملفات → نتهيأ لها
+    if 'assist' not in df.columns:
+        df['assist'] = 0
+    if 'type_value_Assist' not in df.columns:
+        df['type_value_Assist'] = 0
+
+    # تأكيد الأعمدة المكانية
+    needed_xy = {'x', 'y', 'endX', 'endY'}
+    if not needed_xy.issubset(df.columns):
+        ax.set_title(f"{name_show} Passes Received", color=col1, fontsize=25, fontweight='bold', y=1.03)
+        ax.text(52.5, 34, "⚠️ الملف يفتقد أعمدة المواقع (x,y,endX,endY)", color='w',
+                ha='center', va='center', fontsize=14)
+        return
+
+    # تمريرات ناجحة والمستقبل هو اللاعب الهدف (باستخدام shift)
+    filtered_rows = df[
+        (df['type'] == 'Pass') &
+        (df['outcomeType'] == 'Successful') &
+        (df['name'].shift(-1) == name)
+    ]
+
+    # تمريرات مفتاحية ومساعدات مستلمة
+    keypass_recieved_df = filtered_rows[filtered_rows['type_value_Assist'] == 210] if not filtered_rows.empty else pd.DataFrame()
+    assist_recieved_df  = filtered_rows[filtered_rows['assist'] == 1]               if not filtered_rows.empty else pd.DataFrame()
+
+    pr  = len(filtered_rows)
+    kpr = len(keypass_recieved_df)
+    ar  = len(assist_recieved_df)
+
+    # رسم الخطوط والنقاط (باستخدام الأقواس لضمان الأمان)
+    if pr > 0:
+        pitch.lines(filtered_rows['x'], filtered_rows['y'], filtered_rows['endX'], filtered_rows['endY'],
+                    lw=3, comet=True, color=col1, alpha=0.5, ax=ax)
+        pitch.scatter(filtered_rows['endX'], filtered_rows['endY'], s=30, edgecolor=col1,
+                      linewidth=1, color=bg_color, zorder=2, ax=ax)
+
+    if kpr > 0:
+        pitch.lines(keypass_recieved_df['x'], keypass_recieved_df['y'],
+                    keypass_recieved_df['endX'], keypass_recieved_df['endY'],
+                    lw=4, comet=True, color=violet, alpha=0.75, ax=ax)
+        pitch.scatter(keypass_recieved_df['endX'], keypass_recieved_df['endY'], s=40,
+                      edgecolor=violet, linewidth=1.5, color=bg_color, zorder=2, ax=ax)
+
+    if ar > 0:
+        pitch.lines(assist_recieved_df['x'], assist_recieved_df['y'],
+                    assist_recieved_df['endX'], assist_recieved_df['endY'],
+                    lw=4, comet=True, color='green', alpha=0.75, ax=ax)
+        pitch.scatter(assist_recieved_df['endX'], assist_recieved_df['endY'], s=50,
+                      edgecolors='green', linewidths=1, marker='football', c=bg_color, zorder=2, ax=ax)
+
+    # خطوط المتوسط
+    if pr > 0 and 'endX' in filtered_rows.columns and 'endY' in filtered_rows.columns:
+        avg_endX = float(filtered_rows['endX'].median())
+        avg_endY = float(filtered_rows['endY'].median())
+        ax.axvline(x=avg_endX, color='gray', linestyle='--', alpha=0.6, linewidth=2)
+        ax.axhline(y=avg_endY, color='gray', linestyle='--', alpha=0.6, linewidth=2)
+
+    # العنوان والإحصائيات
+    ax.set_title(f"{name_show} Passes Received", color=col1, fontsize=25, fontweight='bold', y=1.03)
+    highlight_text = [{'color': violet}, {'color': 'green'}]
+    ax_text(52.5, -3,
+            f'Passes Received: {pr + kpr} | <Keypasses Received: {kpr}> | <Assist Received: {ar}>',
+            color=line_color, fontsize=15, ha='center', va='center',
+            highlight_textprops=highlight_text, ax=ax)
+
+    return
+
+
+
         
-            # plotting the home center forward pass receiving
-            name = home_Forward
-            name_show = get_short_name(name)
-            filtered_rows = df[(df['type'] == 'Pass') & (df['outcomeType'] == 'Successful') & (df['name'].shift(-1) == name)]
-            keypass_recieved_df = filtered_rows[filtered_rows['type_value_Assist']==210]
-            assist_recieved_df = filtered_rows[filtered_rows['assist']==1]
-            pr = len(filtered_rows)
-            kpr = len(keypass_recieved_df)
-            ar = len(assist_recieved_df)
-        
-            lc1 = pitch.lines(filtered_rows.x, filtered_rows.y, filtered_rows.endX, filtered_rows.endY, lw=3, transparent=True, comet=True,color=col1, ax=ax, alpha=0.5)
-            lc2 = pitch.lines(keypass_recieved_df.x, keypass_recieved_df.y, keypass_recieved_df.endX, keypass_recieved_df.endY, lw=4, transparent=True, comet=True,color=violet, ax=ax, alpha=0.75)
-            lc3 = pitch.lines(assist_recieved_df.x, assist_recieved_df.y, assist_recieved_df.endX, assist_recieved_df.endY, lw=4, transparent=True, comet=True,color='green', ax=ax, alpha=0.75)
-            sc1 = pitch.scatter(filtered_rows.endX, filtered_rows.endY, s=30, edgecolor=col1, linewidth=1, color=bg_color, zorder=2, ax=ax)
-            sc2 = pitch.scatter(keypass_recieved_df.endX, keypass_recieved_df.endY, s=40, edgecolor=violet, linewidth=1.5, color=bg_color, zorder=2, ax=ax)
-            sc3 = pitch.scatter(assist_recieved_df.endX, assist_recieved_df.endY, s=50, edgecolors='green', linewidths=1, marker='football', c=bg_color, zorder=2, ax=ax)
-        
-            avg_endY = filtered_rows['endY'].median()
-            avg_endX = filtered_rows['endX'].median()
-            ax.axvline(x=avg_endX, ymin=0, ymax=68, color='gray', linestyle='--', alpha=0.6, linewidth=2)
-            ax.axhline(y=avg_endY, xmin=0, xmax=105, color='gray', linestyle='--', alpha=0.6, linewidth=2)
-            ax.set_title(f"{name_show} Passes Recieved", color=col1, fontsize=25, fontweight='bold', y=1.03)
-            highlight_text=[{'color':violet}, {'color':'green'}]
-            ax_text(52.5,-3, f'Passes Recieved:{pr+kpr} | <Keypasses Recieved:{kpr}> | <Assist Received: {ar}>', color=line_color, fontsize=15, ha='center', 
-                    va='center', highlight_textprops=highlight_text, ax=ax)
-        
-            return
-        
+from mplsoccer import Pitch
+import pandas as pd
+from highlight_text import ax_text
+
 def away_passes_recieved(ax):
-            pitch = Pitch(pitch_type='uefa', corner_arcs=True, pitch_color=bg_color, line_color=line_color, linewidth=2)
-            pitch.draw(ax=ax)
-            ax.set_xlim(-0.5, 105.5)
-            ax.set_ylim(-0.5, 68.5)
-            ax.invert_xaxis()
-            ax.invert_yaxis()
-        
-            # plotting the away center forward pass receiving
-            name = away_Forward
-            name_show = get_short_name(name)
-            filtered_rows = df[(df['type'] == 'Pass') & (df['outcomeType'] == 'Successful') & (df['name'].shift(-1) == name)]
-            keypass_recieved_df = filtered_rows[filtered_rows['type_value_Assist']==210]
-            assist_recieved_df = filtered_rows[filtered_rows['assist']==1]
-            pr = len(filtered_rows)
-            kpr = len(keypass_recieved_df)
-            ar = len(assist_recieved_df)
-        
-            lc1 = pitch.lines(filtered_rows.x, filtered_rows.y, filtered_rows.endX, filtered_rows.endY, lw=3, transparent=True, comet=True,color=col2, ax=ax, alpha=0.5)
-            lc2 = pitch.lines(keypass_recieved_df.x, keypass_recieved_df.y, keypass_recieved_df.endX, keypass_recieved_df.endY, lw=4, transparent=True, comet=True,color=violet, ax=ax, alpha=0.75)
-            lc3 = pitch.lines(assist_recieved_df.x, assist_recieved_df.y, assist_recieved_df.endX, assist_recieved_df.endY, lw=4, transparent=True, comet=True,color='green', ax=ax, alpha=0.75)
-            sc1 = pitch.scatter(filtered_rows.endX, filtered_rows.endY, s=30, edgecolor=col2, linewidth=1, color=bg_color, zorder=2, ax=ax)
-            sc2 = pitch.scatter(keypass_recieved_df.endX, keypass_recieved_df.endY, s=40, edgecolor=violet, linewidth=1.5, color=bg_color, zorder=2, ax=ax)
-            sc3 = pitch.scatter(assist_recieved_df.endX, assist_recieved_df.endY, s=50, edgecolors='green', linewidths=1, marker='football', c=bg_color, zorder=2, ax=ax)
-        
-            avg_endX = filtered_rows['endX'].median()
-            avg_endY = filtered_rows['endY'].median()
-            ax.axvline(x=avg_endX, ymin=0, ymax=68, color='gray', linestyle='--', alpha=0.6, linewidth=2)
-            ax.axhline(y=avg_endY, xmin=0, xmax=105, color='gray', linestyle='--', alpha=0.6, linewidth=2)
-            ax.set_title(f"{name_show} Passes Recieved", color=col2, fontsize=25, fontweight='bold', y=1.03)
-            highlight_text=[{'color':violet}, {'color':'green'}]
-            ax_text(52.5,71, f'Passes Recieved:{pr+kpr} | <Keypasses Recieved:{kpr}> | <Assist Received: {ar}>', color=line_color, fontsize=15, ha='center', 
-                    va='center', highlight_textprops=highlight_text, ax=ax)
-        
-            return
+    # ملعب
+    pitch = Pitch(pitch_type='uefa', corner_arcs=True,
+                  pitch_color=bg_color, line_color=line_color, linewidth=2)
+    pitch.draw(ax=ax)
+    ax.set_xlim(-0.5, 105.5)
+    ax.set_ylim(-0.5, 68.5)
+    ax.invert_xaxis()
+    ax.invert_yaxis()
+
+    # اسم اللاعب (المهاجم) + الاسم المختصر
+    name = away_Forward
+    name_show = get_short_name(name) if callable(get_short_name) else str(name)
+
+    # أعمدة قد تكون مفقودة
+    if 'assist' not in df.columns:
+        df['assist'] = 0
+    if 'type_value_Assist' not in df.columns:
+        df['type_value_Assist'] = 0
+
+    # تأكيد الأعمدة المكانية
+    needed_xy = {'x', 'y', 'endX', 'endY'}
+    if not needed_xy.issubset(df.columns):
+        ax.set_title(f"{name_show} Passes Received", color=col2, fontsize=25, fontweight='bold', y=1.03)
+        ax.text(52.5, 34, "⚠️ الملف يفتقد أعمدة المواقع (x,y,endX,endY)", color='w',
+                ha='center', va='center', fontsize=14)
+        return
+
+    # تمريرات ناجحة والمستقبل هو اللاعب الهدف
+    filtered_rows = df[
+        (df['type'] == 'Pass') &
+        (df['outcomeType'] == 'Successful') &
+        (df['name'].shift(-1) == name)
+    ]
+
+    # تمريرات مفتاحية ومساعدات مستلمة
+    keypass_recieved_df = filtered_rows[filtered_rows['type_value_Assist'] == 210] if not filtered_rows.empty else pd.DataFrame()
+    assist_recieved_df  = filtered_rows[filtered_rows['assist'] == 1]               if not filtered_rows.empty else pd.DataFrame()
+
+    pr  = len(filtered_rows)
+    kpr = len(keypass_recieved_df)
+    ar  = len(assist_recieved_df)
+
+    # رسم
+    if pr > 0:
+        pitch.lines(filtered_rows['x'], filtered_rows['y'], filtered_rows['endX'], filtered_rows['endY'],
+                    lw=3, comet=True, color=col2, alpha=0.5, ax=ax)
+        pitch.scatter(filtered_rows['endX'], filtered_rows['endY'], s=30, edgecolor=col2,
+                      linewidth=1, color=bg_color, zorder=2, ax=ax)
+
+    if kpr > 0:
+        pitch.lines(keypass_recieved_df['x'], keypass_recieved_df['y'],
+                    keypass_recieved_df['endX'], keypass_recieved_df['endY'],
+                    lw=4, comet=True, color=violet, alpha=0.75, ax=ax)
+        pitch.scatter(keypass_recieved_df['endX'], keypass_recieved_df['endY'], s=40,
+                      edgecolor=violet, linewidth=1.5, color=bg_color, zorder=2, ax=ax)
+
+    if ar > 0:
+        pitch.lines(assist_recieved_df['x'], assist_recieved_df['y'],
+                    assist_recieved_df['endX'], assist_recieved_df['endY'],
+                    lw=4, comet=True, color='green', alpha=0.75, ax=ax)
+        pitch.scatter(assist_recieved_df['endX'], assist_recieved_df['endY'], s=50,
+                      edgecolors='green', linewidths=1, marker='football', c=bg_color, zorder=2, ax=ax)
+
+    # خطوط المتوسط
+    if pr > 0 and 'endX' in filtered_rows.columns and 'endY' in filtered_rows.columns:
+        avg_endX = float(filtered_rows['endX'].median())
+        avg_endY = float(filtered_rows['endY'].median())
+        ax.axvline(x=avg_endX, color='gray', linestyle='--', alpha=0.6, linewidth=2)
+        ax.axhline(y=avg_endY, color='gray', linestyle='--', alpha=0.6, linewidth=2)
+
+    # العنوان والإحصائيات
+    ax.set_title(f"{name_show} Passes Received", color=col2, fontsize=25, fontweight='bold', y=1.03)
+    highlight_text = [{'color': violet}, {'color': 'green'}]
+    ax_text(52.5, 71,
+            f'Passes Received: {pr + kpr} | <Keypasses Received: {kpr}> | <Assist Received: {ar}>',
+            color=line_color, fontsize=15, ha='center', va='center',
+            highlight_textprops=highlight_text, ax=ax)
+
+    return
+
+
         
         
         # Top Defenders
@@ -2794,164 +3165,163 @@ def threat_creators(ax):
 
 
 def offensive_actions(ax, pname):
-            # Viz Dfs:
-            playerdf = df[df['name']==pname]
-            passdf = playerdf[playerdf['type']=='Pass']
-            succ_passdf = passdf[passdf['outcomeType']=='Successful']
-            prg_pass = playerdf[(playerdf['prog_pass']>9.144) & (playerdf['outcomeType']=='Successful') & (playerdf['x']>35) &
-                                (playerdf['type_value_Corner taken']!=6) & (playerdf['type_value_Free kick taken']!=5)]
-            prg_carry = playerdf[(playerdf['prog_carry']>9.144) & (playerdf['endX']>35)]
-            cc = playerdf[(playerdf['type_value_Assist']==210)]
-            ga = playerdf[(playerdf['assist']==1)]
-            goal = playerdf[(playerdf['type']=='Goal') & (playerdf['isOwnGoal'].isna())]
-            owngoal = playerdf[(playerdf['type']=='Goal') & (playerdf['isOwnGoal'].notna())]
-            ontr = playerdf[(playerdf['type']=='SavedShot')]
-            oftr = playerdf[playerdf['type'].isin(['MissedShots', 'ShotOnPost'])]
-            takeOns = playerdf[(playerdf['type']=='TakeOn') & (playerdf['outcomeType']=='Successful')]
-            takeOnu = playerdf[(playerdf['type']=='TakeOn') & (playerdf['outcomeType']=='Unsuccessful')]
+    # Viz Dfs:
+    playerdf = df[df['name'] == pname]
+    passdf = playerdf[playerdf['type'] == 'Pass']
+    succ_passdf = passdf[passdf['outcomeType'] == 'Successful']
+    prg_pass = playerdf[
+        (playerdf['prog_pass'] > 9.144)
+        & (playerdf['outcomeType'] == 'Successful')
+        & (playerdf['x'] > 35)
+        & (playerdf['type_value_Corner taken'] != 6)
+        & (playerdf['type_value_Free kick taken'] != 5)
+    ]
+    prg_carry = playerdf[
+        (playerdf['prog_carry'] > 9.144) & (playerdf['endX'] > 35)
+    ]
+    cc = playerdf[playerdf['type_value_Assist'] == 210]
 
-            # Pitch Plot
-            pitch = VerticalPitch(pitch_type='uefa', corner_arcs=True, pitch_color=bg_color, line_color=line_color, line_zorder=2, linewidth=2, pad_bottom=27)
-            pitch.draw(ax=ax)
+    # ✅ حماية ضد غياب عمود assist
+    if 'assist' not in playerdf.columns:
+        playerdf['assist'] = 0
 
-            # line, arrow, scatter Plots
-            pitch.lines(succ_passdf.x, succ_passdf.y, succ_passdf.endX, succ_passdf.endY, color='gray', comet=True, lw=2, alpha=0.65, zorder=1, ax=ax)
-            pitch.scatter(succ_passdf.endX, succ_passdf.endY, color=bg_color, ec='gray', s=20, zorder=2, ax=ax)
-            pitch.lines(prg_pass.x, prg_pass.y, prg_pass.endX, prg_pass.endY, color=col2, comet=True, lw=3, zorder=2, ax=ax)
-            pitch.scatter(prg_pass.endX, prg_pass.endY, color=bg_color, ec=col2, s=40, zorder=3, ax=ax)
-            pitch.lines(cc.x, cc.y, cc.endX, cc.endY, color=violet, comet=True, lw=3.5, zorder=3, ax=ax)
-            pitch.scatter(cc.endX, cc.endY, color=bg_color, ec=violet, s=50, lw=1.5, zorder=4, ax=ax)
-            pitch.lines(ga.x, ga.y, ga.endX, ga.endY, color='green', comet=True, lw=4, zorder=4, ax=ax)
-            pitch.scatter(ga.endX, ga.endY, color=bg_color, ec='green', s=60, lw=2, zorder=5, ax=ax)
+    ga = playerdf[playerdf['assist'] == 1]
+    goal = playerdf[(playerdf['type'] == 'Goal') & (playerdf['isOwnGoal'].isna())]
+    owngoal = playerdf[(playerdf['type'] == 'Goal') & (playerdf['isOwnGoal'].notna())]
+    ontr = playerdf[(playerdf['type'] == 'SavedShot')]
+    oftr = playerdf[playerdf['type'].isin(['MissedShots', 'ShotOnPost'])]
+    takeOns = playerdf[
+        (playerdf['type'] == 'TakeOn') & (playerdf['outcomeType'] == 'Successful')
+    ]
+    takeOnu = playerdf[
+        (playerdf['type'] == 'TakeOn') & (playerdf['outcomeType'] == 'Unsuccessful')
+    ]
 
-            for index, row in prg_carry.iterrows():
-                arrow = patches.FancyArrowPatch((row['y'], row['x']), (row['endY'], row['endX']), arrowstyle='->', color=col2, zorder=2, mutation_scale=20, 
-                                                linewidth=2, linestyle='--')
-                ax.add_patch(arrow)
+    # Pitch Plot
+    pitch = VerticalPitch(
+        pitch_type='uefa',
+        corner_arcs=True,
+        pitch_color=bg_color,
+        line_color=line_color,
+        line_zorder=2,
+        linewidth=2,
+        pad_bottom=27,
+    )
+    pitch.draw(ax=ax)
 
-            pitch.scatter(goal.x, goal.y, c=bg_color, edgecolors='green', linewidths=1.2, s=300, marker='football', zorder=10, ax=ax)
-            pitch.scatter(owngoal.x, owngoal.y, c=bg_color, edgecolors='orange', linewidths=1.2, s=300, marker='football', zorder=10, ax=ax)
-            pitch.scatter(ontr.x, ontr.y, c=col1, edgecolors=line_color, linewidths=1.2, s=200, alpha=0.75, zorder=9, ax=ax)
-            pitch.scatter(oftr.x, oftr.y, c=bg_color, edgecolors=col1, linewidths=1.2, s=200, alpha=0.75, zorder=8, ax=ax)
+    # line, arrow, scatter Plots
+    pitch.lines(
+        succ_passdf.x, succ_passdf.y, succ_passdf.endX, succ_passdf.endY,
+        color='gray', comet=True, lw=2, alpha=0.65, zorder=1, ax=ax
+    )
+    pitch.scatter(succ_passdf.endX, succ_passdf.endY, color=bg_color, ec='gray', s=20, zorder=2, ax=ax)
+    pitch.lines(prg_pass.x, prg_pass.y, prg_pass.endX, prg_pass.endY, color=col2, comet=True, lw=3, zorder=2, ax=ax)
+    pitch.scatter(prg_pass.endX, prg_pass.endY, color=bg_color, ec=col2, s=40, zorder=3, ax=ax)
+    pitch.lines(cc.x, cc.y, cc.endX, cc.endY, color=violet, comet=True, lw=3.5, zorder=3, ax=ax)
+    pitch.scatter(cc.endX, cc.endY, color=bg_color, ec=violet, s=50, lw=1.5, zorder=4, ax=ax)
+    pitch.lines(ga.x, ga.y, ga.endX, ga.endY, color='green', comet=True, lw=4, zorder=4, ax=ax)
+    pitch.scatter(ga.endX, ga.endY, color=bg_color, ec='green', s=60, lw=2, zorder=5, ax=ax)
 
-            pitch.scatter(takeOns.x, takeOns.y, c='orange', edgecolors=line_color, marker='h', s=200, alpha=0.75, zorder=7, ax=ax)
-            pitch.scatter(takeOnu.x, takeOnu.y, c=bg_color, edgecolors='orange', marker='h', lw=1.2, hatch='//////', s=200, alpha=0.85, zorder=7, ax=ax)
+    for _, row in prg_carry.iterrows():
+        arrow = patches.FancyArrowPatch(
+            (row['y'], row['x']), (row['endY'], row['endX']),
+            arrowstyle='->', color=col2, zorder=2, mutation_scale=20,
+            linewidth=2, linestyle='--'
+        )
+        ax.add_patch(arrow)
 
-            # Stats:
-            pitch.scatter(-5, 68, c=bg_color, edgecolors='green', linewidths=1.2, s=300, marker='football', zorder=10, ax=ax)
-            pitch.scatter(-10, 68, c=col1, edgecolors=line_color, linewidths=1.2, s=300, alpha=0.75, zorder=9, ax=ax)
-            pitch.scatter(-15, 68, c=bg_color, edgecolors=col1, linewidths=1.2, s=300, alpha=0.75, zorder=8, ax=ax)
-            pitch.scatter(-20, 68, c='orange', edgecolors=line_color, marker='h', s=300, alpha=0.75, zorder=7, ax=ax)
-            pitch.scatter(-25, 68, c=bg_color, edgecolors='orange', marker='h', lw=1.2, hatch='//////', s=300, alpha=0.85, zorder=7, ax=ax)
-            if len(owngoal)>0:
-                ax_text(64, -4.5, f'Goals: {len(goal)} | <OwnGoal: {len(owngoal)}>', fontsize=12, highlight_textprops=[{'color':'orange'}], ax=ax)
-            else:
-                ax.text(64, -5.5, f'Goals: {len(goal)}', fontsize=12)
-            ax.text(64, -10.5, f'Shots on Target: {len(ontr)}', fontsize=12)
-            ax.text(64, -15.5, f'Shots off Target: {len(oftr)}', fontsize=12)
-            ax.text(64, -20.5, f'TakeOn (Succ.): {len(takeOns)}', fontsize=12)
-            ax.text(64, -25.5, f'TakeOn (Unsucc.): {len(takeOnu)}', fontsize=12)
+    pitch.scatter(goal.x, goal.y, c=bg_color, edgecolors='green', linewidths=1.2, s=300, marker='football', zorder=10, ax=ax)
+    pitch.scatter(owngoal.x, owngoal.y, c=bg_color, edgecolors='orange', linewidths=1.2, s=300, marker='football', zorder=10, ax=ax)
+    pitch.scatter(ontr.x, ontr.y, c=col1, edgecolors=line_color, linewidths=1.2, s=200, alpha=0.75, zorder=9, ax=ax)
+    pitch.scatter(oftr.x, oftr.y, c=bg_color, edgecolors=col1, linewidths=1.2, s=200, alpha=0.75, zorder=8, ax=ax)
+    pitch.scatter(takeOns.x, takeOns.y, c='orange', edgecolors=line_color, marker='h', s=200, alpha=0.75, zorder=7, ax=ax)
+    pitch.scatter(takeOnu.x, takeOnu.y, c=bg_color, edgecolors='orange', marker='h', lw=1.2, hatch='//////', s=200, alpha=0.85, zorder=7, ax=ax)
 
-            pitch.lines(-5, 34, -5, 24, color='gray', comet=True, lw=2, alpha=0.65, zorder=1, ax=ax)
-            pitch.scatter(-5, 24, color=bg_color, ec='gray', s=20, zorder=2, ax=ax)
-            pitch.lines(-10, 34, -10, 24, color=col2, comet=True, lw=3, zorder=2, ax=ax)
-            pitch.scatter(-10, 24, color=bg_color, ec=col2, s=40, zorder=3, ax=ax)
-            arrow = patches.FancyArrowPatch((34, -15), (23, -15), arrowstyle='->', color=col2, zorder=2, mutation_scale=20, 
-                                                linewidth=2, linestyle='--')
-            ax.add_patch(arrow)
-            pitch.lines(-20, 34, -20, 24, color=violet, comet=True, lw=3.5, zorder=3, ax=ax)
-            pitch.scatter(-20, 24, color=bg_color, ec=violet, s=50, lw=1.5, zorder=4, ax=ax)
-            pitch.lines(-25, 34, -25, 24, color='green', comet=True, lw=4, zorder=4, ax=ax)
-            pitch.scatter(-25, 24, color=bg_color, ec='green', s=60, lw=2, zorder=5, ax=ax)
+    # النصوص الإحصائية
+    if len(owngoal) > 0:
+        ax_text(64, -4.5, f'Goals: {len(goal)} | <OwnGoal: {len(owngoal)}>',
+                fontsize=12, highlight_textprops=[{'color':'orange'}], ax=ax)
+    else:
+        ax.text(64, -5.5, f'Goals: {len(goal)}', fontsize=12)
+    ax.text(64, -10.5, f'Shots on Target: {len(ontr)}', fontsize=12)
+    ax.text(64, -15.5, f'Shots off Target: {len(oftr)}', fontsize=12)
+    ax.text(64, -20.5, f'TakeOn (Succ.): {len(takeOns)}', fontsize=12)
+    ax.text(64, -25.5, f'TakeOn (Unsucc.): {len(takeOnu)}', fontsize=12)
+    ax.text(21, -5.5, f'Successful Pass: {len(succ_passdf)}', fontsize=12)
+    ax.text(21, -10.5, f'Porgressive Pass: {len(prg_pass)}', fontsize=12)
+    ax.text(21, -15.5, f'Porgressive Carry: {len(prg_carry)}', fontsize=12)
+    ax.text(21, -20.5, f'Key Passes: {len(cc)}', fontsize=12)
+    ax.text(21, -25.5, f'Assists: {len(ga)}', fontsize=12)
+    ax.text(34, 110, 'Offensive Actions', fontsize=20, fontweight='bold', ha='center', va='center')
 
-            ax.text(21, -5.5, f'Successful Pass: {len(succ_passdf)}', fontsize=12)
-            ax.text(21, -10.5, f'Porgressive Pass: {len(prg_pass)}', fontsize=12)
-            ax.text(21, -15.5, f'Porgressive Carry: {len(prg_carry)}', fontsize=12)
-            ax.text(21, -20.5, f'Key Passes: {len(cc)}', fontsize=12)
-            ax.text(21, -25.5, f'Assists: {len(ga)}', fontsize=12)
+    return
 
-            ax.text(34, 110, 'Offensive Actions', fontsize=20, fontweight='bold', ha='center', va='center')
-            return
         
 
 def pass_receiving_and_touchmap(ax, pname):
-            # Viz Dfs:
-            playerdf = df[df['name']==pname]
-            touch_df = playerdf[(playerdf['x']>0) & (playerdf['y']>0)]
-            pass_rec = df[(df['type']=='Pass') & (df['outcomeType']=='Successful') & (df['name'].shift(-1)==pname)]
-            # touch_df = pd.concat([acts_df, pass_rec], ignore_index=True)
-            actual_touch = playerdf[playerdf['isTouch']==1]
+    # بيانات اللاعب
+    playerdf = df[df['name'] == pname]
 
-            fthd_tch = actual_touch[actual_touch['x']>=70]
-            penbox_tch = actual_touch[(actual_touch['x']>=88.5) & (actual_touch['y']>=13.6) & (actual_touch['y']<=54.4)]
+    # 🔹 استخراج رقم القميص الحقيقي من العمود
+    if 'value_Jersey number.y' in playerdf.columns:
+        jersey_series = playerdf['value_Jersey number.y'].dropna()
+        if not jersey_series.empty:
+            shirt_number = str(int(jersey_series.iloc[0]))
+        else:
+            shirt_number = ""
+    else:
+        shirt_number = ""
 
-            fthd_rec = pass_rec[pass_rec['endX']>=70]
-            penbox_rec = pass_rec[(pass_rec['endX']>=88.5) & (pass_rec['endY']>=13.6) & (pass_rec['endY']<=54.4)]
+    # بيانات التمريرات واللمسات
+    touch_df = playerdf[(playerdf['x'] > 0) & (playerdf['y'] > 0)]
+    pass_rec = df[(df['type'] == 'Pass') & (df['outcomeType'] == 'Successful') & (df['name'].shift(-1) == pname)]
+    actual_touch = playerdf[playerdf['isTouch'] == 1]
 
-            pitch = VerticalPitch(pitch_type='uefa', corner_arcs=True, pitch_color=bg_color, line_color=line_color, linewidth=2, pad_bottom=27)
-            pitch.draw(ax=ax)
+    fthd_tch = actual_touch[actual_touch['x'] >= 70]
+    penbox_tch = actual_touch[(actual_touch['x'] >= 88.5) & (actual_touch['y'] >= 13.6) & (actual_touch['y'] <= 54.4)]
 
-            ax.scatter(touch_df.y, touch_df.x, marker='o', s=30, c='None', edgecolor=col2, lw=2)
-            if len(touch_df)>3:
-                # Calculate mean point
-                mean_point = np.mean(touch_df[['y', 'x']].values, axis=0)
-                
-                # Calculate distances from the mean point
-                distances = np.linalg.norm(touch_df[['y', 'x']].values - mean_point[None, :], axis=1)
-                
-                # Compute the interquartile range (IQR)
-                q1, q3 = np.percentile(distances, [20, 80])  # Middle 75%: 12.5th to 87.5th percentile
-                iqr_mask = (distances >= q1) & (distances <= q3)
-                
-                # Filter points within the IQR
-                points_within_iqr = touch_df[['y', 'x']].values[iqr_mask]
-                
-                # Check if we have enough points for a convex hull
-                if len(points_within_iqr) >= 3:
-                    hull = ConvexHull(points_within_iqr)
-                    for simplex in hull.simplices:
-                        ax.plot(points_within_iqr[simplex, 0], points_within_iqr[simplex, 1], color=col2, linestyle='--')
-                    ax.fill(points_within_iqr[hull.vertices, 0], points_within_iqr[hull.vertices, 1], 
-                            facecolor='none', edgecolor=col2, alpha=0.3, hatch='/////', zorder=1)
-                else:
-                    pass
-            else:
-                pass
+    fthd_rec = pass_rec[pass_rec['endX'] >= 70]
+    penbox_rec = pass_rec[(pass_rec['endX'] >= 88.5) & (pass_rec['endY'] >= 13.6) & (pass_rec['endY'] <= 54.4)]
 
-            ax.scatter(pass_rec.endY, pass_rec.endX, marker='o', s=30, c='None', edgecolor=col1, lw=2)
-            if len(touch_df)>4:
-                # Calculate mean point
-                mean_point = np.mean(pass_rec[['endY', 'endX']].values, axis=0)
-                
-                # Calculate distances from the mean point
-                distances = np.linalg.norm(pass_rec[['endY', 'endX']].values - mean_point[None, :], axis=1)
-                
-                # Compute the interquartile range (IQR)
-                q1, q3 = np.percentile(distances, [25, 75])  # Middle 75%: 12.5th to 87.5th percentile
-                iqr_mask = (distances >= q1) & (distances <= q3)
-                
-                # Filter points within the IQR
-                points_within_iqr = pass_rec[['endY', 'endX']].values[iqr_mask]
-                
-                # Check if we have enough points for a convex hull
-                if len(points_within_iqr) >= 3:
-                    hull = ConvexHull(points_within_iqr)
-                    for simplex in hull.simplices:
-                        ax.plot(points_within_iqr[simplex, 0], points_within_iqr[simplex, 1], color=col1, linestyle='--')
-                    ax.fill(points_within_iqr[hull.vertices, 0], points_within_iqr[hull.vertices, 1], 
-                            facecolor='none', edgecolor=col1, alpha=0.3, hatch='/////', zorder=1)
-                else:
-                    pass
-            else:
-                pass
+    # رسم الملعب
+    pitch = VerticalPitch(pitch_type='uefa', corner_arcs=True, pitch_color=bg_color, line_color=line_color, linewidth=2, pad_bottom=27)
+    pitch.draw(ax=ax)
 
-            ax_text(34, 110, '<Touches> & <Pass Receiving> Points', fontsize=20, fontweight='bold', ha='center', va='center', 
-                    highlight_textprops=[{'color':col2}, {'color':col1}])
-            ax.text(34, -5, f'Total Touches: {len(actual_touch)} | at Final Third: {len(fthd_tch)} | at Penalty Box: {len(penbox_tch)}', color=col2, fontsize=13, ha='center', va='center')
-            ax.text(34, -9, f'Total Pass Received: {len(pass_rec)} | at Final Third: {len(fthd_rec)} | at Penalty Box: {len(penbox_rec)}', color=col1, fontsize=13, ha='center', va='center')
-            ax.text(34, -17, '*blue area = middle 75% touches area', color=col2, fontsize=13, fontstyle='italic', ha='center', va='center')
-            ax.text(34, -21, '*red area = middle 75% pass receiving area', color=col1, fontsize=13, fontstyle='italic', ha='center', va='center')
-            return
+    # اللمسات
+    ax.scatter(touch_df.y, touch_df.x, marker='o', s=30, c='None', edgecolor=col2, lw=2)
+    if len(touch_df) > 3:
+        mean_point = np.mean(touch_df[['y', 'x']].values, axis=0)
+        distances = np.linalg.norm(touch_df[['y', 'x']].values - mean_point[None, :], axis=1)
+        q1, q3 = np.percentile(distances, [20, 80])
+        iqr_mask = (distances >= q1) & (distances <= q3)
+        points_within_iqr = touch_df[['y', 'x']].values[iqr_mask]
+        if len(points_within_iqr) >= 3:
+            hull = ConvexHull(points_within_iqr)
+            for simplex in hull.simplices:
+                ax.plot(points_within_iqr[simplex, 0], points_within_iqr[simplex, 1], color=col2, linestyle='--')
+            ax.fill(points_within_iqr[hull.vertices, 0], points_within_iqr[hull.vertices, 1],
+                    facecolor='none', edgecolor=col2, alpha=0.3, hatch='/////', zorder=1)
+
+    # تمريرات مستلمة
+    ax.scatter(pass_rec.endY, pass_rec.endX, marker='o', s=30, c='None', edgecolor=col1, lw=2)
+    if len(pass_rec) > 0:
+        avg_x = pass_rec['endX'].mean()
+        avg_y = pass_rec['endY'].mean()
+        ax.scatter(avg_y, avg_x, s=400, c=col1, edgecolor='white', lw=2, zorder=4)
+        if shirt_number != "":
+            ax.text(avg_y, avg_x, shirt_number, color='white', fontsize=13, fontweight='bold',
+                    ha='center', va='center', zorder=5)
+
+    # النصوص التوضيحية
+    ax_text(34, 110, '<Touches> & <Pass Receiving> Points', fontsize=20, fontweight='bold',
+            ha='center', va='center', highlight_textprops=[{'color': col2}, {'color': col1}])
+    ax.text(34, -5, f'Total Touches: {len(actual_touch)} | at Final Third: {len(fthd_tch)} | at Penalty Box: {len(penbox_tch)}', color=col2, fontsize=13, ha='center', va='center')
+    ax.text(34, -9, f'Total Pass Received: {len(pass_rec)} | at Final Third: {len(fthd_rec)} | at Penalty Box: {len(penbox_rec)}', color=col1, fontsize=13, ha='center', va='center')
+    ax.text(34, -17, '*blue area = middle 75% touches area', color=col2, fontsize=13, fontstyle='italic', ha='center', va='center')
+    ax.text(34, -21, '*red circle = avg receiving position (with shirt number)', color=col1, fontsize=13, fontstyle='italic', ha='center', va='center')
+
+    return
+
         
 
 def defensive_actions(ax, pname, df, team_color="#0099ff", bg_color="#ffffff", line_color="#000000"):
@@ -6569,10 +6939,6 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
-
-
-
-
 
 
 
