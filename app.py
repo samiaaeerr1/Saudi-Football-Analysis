@@ -6969,3 +6969,4 @@ elif analysis_type == "تحليل لاعب":
 
 
 
+
