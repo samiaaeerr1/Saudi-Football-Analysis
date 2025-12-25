@@ -100,18 +100,18 @@ path_eff = [path_effects.Stroke(linewidth=3, foreground=bg_color), path_effects.
 #pearl_earring_cmaph = LinearSegmentedColormap.from_list("Pearl Earring H", [bg_color, color_team1], N=20)
 #pearl_earring_cmapa = LinearSegmentedColormap.from_list("Pearl Earring A", [bg_color, color_team2], N=20)
 
-image = Image.open('assets/ChatGPT Image 14 أكتوبر 2025، 09_47_04 ص.png')#تغير الصورة 
+# رابط الصورة من GitHub (نسخة RAW)
+image_url = "https://raw.githubusercontent.com/Taleb1402/images/main/SAVEN%20(2).jpeg"
 
-col1, col2, col3 = st.columns([3, 6, 3])
-
-with col1:
-    st.write(' ')
-
-with col2:
-    st.image(image, use_container_width=True)
-
-with col3:
-    st.write(' ')
+# عرض الصورة في الوسط
+st.markdown(
+    f"""
+    <div style="text-align: center;">
+        <img src="{image_url}" width="250">
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 import streamlit as st
 
@@ -3017,149 +3017,165 @@ def away_gk(ax):
         
         
 from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator
+
 def sh_sq_bar(ax):
-          top10_sh_sq = sh_sq_df.nsmallest(10, 'total')['shortName'].tolist()
-        
-          shsq_sh = sh_sq_df.nsmallest(10, 'total')['Shots'].tolist()
-          shsq_sa = sh_sq_df.nsmallest(10, 'total')['Shot Assist'].tolist()
-          shsq_bs = sh_sq_df.nsmallest(10, 'total')['Buildup to shot'].tolist()
-        
-          left1 = [w + x for w, x in zip(shsq_sh, shsq_sa)]
-        
-          ax.barh(top10_sh_sq, shsq_sh, label='Shot', color=col1, left=0)
-          ax.barh(top10_sh_sq, shsq_sa, label='Shot Assist', color=violet, left=shsq_sh)
-          ax.barh(top10_sh_sq, shsq_bs, label='Buildup to Shot', color=col2, left=left1)
-        
-          # Add counts in the middle of the bars (if count > 0)
-          for i, player in enumerate(top10_sh_sq):
-              for j, count in enumerate([shsq_sh[i], shsq_sa[i], shsq_bs[i]]):
-                  if count > 0:
-                      x_position = sum([shsq_sh[i], shsq_sa[i]][:j]) + count / 2
-                      ax.text(x_position, i, str(count), ha='center', va='center', color=bg_color, fontsize=18, fontweight='bold')
-        
-          max_x = sh_sq_df['total'].iloc()[0]
-          x_coord = [2 * i for i in range(1, int(max_x/2))]
-          for x in x_coord:
-              ax.axvline(x=x, color='gray', linestyle='--', zorder=2, alpha=0.5)
-        
-          ax.set_facecolor(bg_color)
-          ax.tick_params(axis='x', colors=line_color, labelsize=15)
-          ax.tick_params(axis='y', colors=line_color, labelsize=15)
-          ax.xaxis.label.set_color(line_color)
-          ax.yaxis.label.set_color(line_color)
-          for spine in ax.spines.values():
-            spine.set_edgecolor(bg_color)
-        
-          ax.set_title(f"Shot Sequence Involvement", color=line_color, fontsize=25, fontweight='bold')
-          ax.legend(fontsize=13)
+
+    # نفس السابق لكن نستبعد الأسماء الفارغة بدل Unknown
+    tmp = sh_sq_df.dropna(subset=['shortName']).nsmallest(10, 'total')
+
+    top10_sh_sq = tmp['shortName'].astype(str).tolist()
+    shsq_sh = tmp['Shots'].tolist()
+    shsq_sa = tmp['Shot Assist'].tolist()
+    shsq_bs = tmp['Buildup to shot'].tolist()
+
+    left1 = [w + x for w, x in zip(shsq_sh, shsq_sa)]
+
+    ax.barh(top10_sh_sq, shsq_sh, label='Shot', color=col1, left=0)
+    ax.barh(top10_sh_sq, shsq_sa, label='Shot Assist', color=violet, left=shsq_sh)
+    ax.barh(top10_sh_sq, shsq_bs, label='Buildup to Shot', color=col2, left=left1)
+
+    # Add counts in the middle of the bars
+    for i, player in enumerate(top10_sh_sq):
+        for j, count in enumerate([shsq_sh[i], shsq_sa[i], shsq_bs[i]]):
+            if count > 0:
+                x_position = sum([shsq_sh[i], shsq_sa[i]][:j]) + count / 2
+                ax.text(
+                    x_position, i, str(count),
+                    ha='center', va='center',
+                    color=bg_color, fontsize=18, fontweight='bold'
+                )
+
+    # نفس السابق: اعتمد max_x من الجدول الأصلي
+    max_x = sh_sq_df['total'].iloc[0]
+    x_coord = [2 * i for i in range(1, int(max_x / 2))]
+    for x in x_coord:
+        ax.axvline(x=x, color='gray', linestyle='--', zorder=2, alpha=0.5)
+
+    ax.set_facecolor(bg_color)
+    ax.tick_params(axis='x', colors=line_color, labelsize=15)
+    ax.tick_params(axis='y', colors=line_color, labelsize=15)
+
+    for spine in ax.spines.values():
+        spine.set_edgecolor(bg_color)
+
+    ax.set_title("Shot Sequence Involvement", color=line_color, fontsize=25, fontweight='bold')
+    ax.legend(fontsize=13)
+
+
         
 def passer_bar(ax):
-          top10_passers = progressor_df.nsmallest(10, 'total')['shortName'].tolist()
-        
-          passers_pp = progressor_df.nsmallest(10, 'total')['Progressive Passes'].tolist()
-          passers_tp = progressor_df.nsmallest(10, 'total')['Progressive Carries'].tolist()
-        
-          left1 = [w + x for w, x in zip(passers_pp, passers_tp)]
-        
-          ax.barh(top10_passers, passers_pp, label='Prog. Pass', color=col1, left=0)
-          ax.barh(top10_passers, passers_tp, label='Prog. Carries', color=col2, left=passers_pp)
-        
-          # Add counts in the middle of the bars (if count > 0)
-          for i, player in enumerate(top10_passers):
-              for j, count in enumerate([passers_pp[i], passers_tp[i]]):
-                  if count > 0:
-                      x_position = sum([passers_pp[i], passers_tp[i]][:j]) + count / 2
-                      ax.text(x_position, i, str(count), ha='center', va='center', color=bg_color, fontsize=18, fontweight='bold')
-        
-          max_x = progressor_df['total'].iloc()[0]
-          x_coord = [2 * i for i in range(1, int(max_x/2))]
-          for x in x_coord:
-              ax.axvline(x=x, color='gray', linestyle='--', zorder=2, alpha=0.5)
-        
-          ax.set_facecolor(bg_color)
-          ax.tick_params(axis='x', colors=line_color, labelsize=15)
-          ax.tick_params(axis='y', colors=line_color, labelsize=15)
-          ax.xaxis.label.set_color(line_color)
-          ax.yaxis.label.set_color(line_color)
-          for spine in ax.spines.values():
-            spine.set_edgecolor(bg_color)
-        
-          ax.set_title(f"Top10 Ball Progressors", color=line_color, fontsize=25, fontweight='bold')
-          ax.legend(fontsize=13)
+    top10_passers = (
+        progressor_df.nsmallest(10, 'total')['shortName']
+        .fillna("Unknown")
+        .astype(str)
+        .tolist()
+    )
+
+    passers_pp = progressor_df.nsmallest(10, 'total')['Progressive Passes'].tolist()
+    passers_tp = progressor_df.nsmallest(10, 'total')['Progressive Carries'].tolist()
+
+    left1 = [w + x for w, x in zip(passers_pp, passers_tp)]
+
+    ax.barh(top10_passers, passers_pp, label='Prog. Pass', color=col1, left=0)
+    ax.barh(top10_passers, passers_tp, label='Prog. Carries', color=col2, left=passers_pp)
+
+    for i, player in enumerate(top10_passers):
+        for j, count in enumerate([passers_pp[i], passers_tp[i]]):
+            if count > 0:
+                x_position = sum([passers_pp[i], passers_tp[i]][:j]) + count / 2
+                ax.text(x_position, i, str(count), ha='center', va='center',
+                        color=bg_color, fontsize=18, fontweight='bold')
+
+    max_x = progressor_df['total'].iloc[0]
+    x_coord = [2 * i for i in range(1, int(max_x / 2))]
+    for x in x_coord:
+        ax.axvline(x=x, color='gray', linestyle='--', zorder=2, alpha=0.5)
+
+    ax.set_facecolor(bg_color)
+    ax.tick_params(axis='x', colors=line_color, labelsize=15)
+    ax.tick_params(axis='y', colors=line_color, labelsize=15)
+    for spine in ax.spines.values():
+        spine.set_edgecolor(bg_color)
+
+    ax.set_title("Top10 Ball Progressors", color=line_color, fontsize=25, fontweight='bold')
+    ax.legend(fontsize=13)
+
         
         
 def defender_bar(ax):
-          top10_defenders = defender_df.nsmallest(10, 'total')['shortName'].tolist()
-        
-          defender_tk = defender_df.nsmallest(10, 'total')['Tackles'].tolist()
-          defender_in = defender_df.nsmallest(10, 'total')['Interceptions'].tolist()
-          defender_ar = defender_df.nsmallest(10, 'total')['Clearance'].tolist()
-        
-          left1 = [w + x for w, x in zip(defender_tk, defender_in)]
-        
-          ax.barh(top10_defenders, defender_tk, label='Tackle', color=col1, left=0)
-          ax.barh(top10_defenders, defender_in, label='Interception', color=violet, left=defender_tk)
-          ax.barh(top10_defenders, defender_ar, label='Clearance', color=col2, left=left1)
-        
-          # Add counts in the middle of the bars (if count > 0)
-          for i, player in enumerate(top10_defenders):
-              for j, count in enumerate([defender_tk[i], defender_in[i], defender_ar[i]]):
-                  if count > 0:
-                      x_position = sum([defender_tk[i], defender_in[i]][:j]) + count / 2
-                      ax.text(x_position, i, str(count), ha='center', va='center', color=bg_color, fontsize=18, fontweight='bold')
-        
-          max_x = defender_df['total'].iloc()[0]
-          x_coord = [2 * i for i in range(1, int(max_x/2))]
-          for x in x_coord:
-              ax.axvline(x=x, color='gray', linestyle='--', zorder=2, alpha=0.5)
-        
-          ax.set_facecolor(bg_color)
-          ax.tick_params(axis='x', colors=line_color, labelsize=15)
-          ax.tick_params(axis='y', colors=line_color, labelsize=15)
-          ax.xaxis.label.set_color(line_color)
-          ax.yaxis.label.set_color(line_color)
-          for spine in ax.spines.values():
-            spine.set_edgecolor(bg_color)
-        
-        
-          ax.set_title(f"Top10 Defenders", color=line_color, fontsize=25, fontweight='bold')
-          ax.legend(fontsize=13)
+    top10_defenders = (
+        defender_df.nsmallest(10, 'total')['shortName']
+        .fillna("Unknown")
+        .astype(str)
+        .tolist()
+    )
+
+    defender_tk = defender_df.nsmallest(10, 'total')['Tackles'].tolist()
+    defender_in = defender_df.nsmallest(10, 'total')['Interceptions'].tolist()
+    defender_ar = defender_df.nsmallest(10, 'total')['Clearance'].tolist()
+
+    left1 = [w + x for w, x in zip(defender_tk, defender_in)]
+
+    ax.barh(top10_defenders, defender_tk, label='Tackle', color=col1, left=0)
+    ax.barh(top10_defenders, defender_in, label='Interception', color=violet, left=defender_tk)
+    ax.barh(top10_defenders, defender_ar, label='Clearance', color=col2, left=left1)
+
+    for i, player in enumerate(top10_defenders):
+        for j, count in enumerate([defender_tk[i], defender_in[i], defender_ar[i]]):
+            if count > 0:
+                x_position = sum([defender_tk[i], defender_in[i]][:j]) + count / 2
+                ax.text(x_position, i, str(count), ha='center', va='center',
+                        color=bg_color, fontsize=18, fontweight='bold')
+
+    max_x = defender_df['total'].iloc[0]
+    x_coord = [2 * i for i in range(1, int(max_x / 2))]
+    for x in x_coord:
+        ax.axvline(x=x, color='gray', linestyle='--', zorder=2, alpha=0.5)
+
+    ax.set_facecolor(bg_color)
+    ax.tick_params(axis='x', colors=line_color, labelsize=15)
+    ax.tick_params(axis='y', colors=line_color, labelsize=15)
+    for spine in ax.spines.values():
+        spine.set_edgecolor(bg_color)
+
+    ax.set_title("Top10 Defenders", color=line_color, fontsize=25, fontweight='bold')
+    ax.legend(fontsize=13)
+
         
         
 def threat_creators(ax):
-          top10_xT = xT_df.nsmallest(10, 'total')['shortName'].tolist()
-        
-          xT_pass = xT_df.nsmallest(10, 'total')['xT from Pass'].tolist()
-          xT_carry = xT_df.nsmallest(10, 'total')['xT from Carry'].tolist()
-        
-          left1 = [w + x for w, x in zip(xT_pass, xT_carry)]
-        
-          ax.barh(top10_xT, xT_pass, label='xT from pass', color=col1, left=0)
-          ax.barh(top10_xT, xT_carry, label='xT from carry', color=violet, left=xT_pass)
-        
-          # Add counts in the middle of the bars (if count > 0)
-          for i, player in enumerate(top10_xT):
-              for j, count in enumerate([xT_pass[i], xT_carry[i]]):
-                  if count > 0:
-                      x_position = sum([xT_pass[i], xT_carry[i]][:j]) + count / 2
-                      ax.text(x_position, i, str(count), ha='center', va='center', color=line_color, fontsize=15, rotation=45)
-        
-          # max_x = xT_df['total'].iloc()[0]
-          # x_coord = [2 * i for i in range(1, int(max_x/2))]
-          # for x in x_coord:
-          #     ax.axvline(x=x, color='gray', linestyle='--', zorder=2, alpha=0.5)
-        
-          ax.set_facecolor(bg_color)
-          ax.tick_params(axis='x', colors=line_color, labelsize=15)
-          ax.tick_params(axis='y', colors=line_color, labelsize=15)
-          ax.xaxis.label.set_color(line_color)
-          ax.yaxis.label.set_color(line_color)
-          for spine in ax.spines.values():
-            spine.set_edgecolor(bg_color)
-        
-        
-          ax.set_title(f"Top10 Threatening Players", color=line_color, fontsize=25, fontweight='bold')
-          ax.legend(fontsize=13)
+    top10_xT = (
+        xT_df.nsmallest(10, 'total')['shortName']
+        .fillna("Unknown")
+        .astype(str)
+        .tolist()
+    )
+
+    xT_pass = xT_df.nsmallest(10, 'total')['xT from Pass'].tolist()
+    xT_carry = xT_df.nsmallest(10, 'total')['xT from Carry'].tolist()
+
+    left1 = [w + x for w, x in zip(xT_pass, xT_carry)]
+
+    ax.barh(top10_xT, xT_pass, label='xT from pass', color=col1, left=0)
+    ax.barh(top10_xT, xT_carry, label='xT from carry', color=violet, left=xT_pass)
+
+    for i, player in enumerate(top10_xT):
+        for j, count in enumerate([xT_pass[i], xT_carry[i]]):
+            if count > 0:
+                x_position = sum([xT_pass[i], xT_carry[i]][:j]) + count / 2
+                ax.text(x_position, i, str(count), ha='center', va='center',
+                        color=line_color, fontsize=15, rotation=45)
+
+    ax.set_facecolor(bg_color)
+    ax.tick_params(axis='x', colors=line_color, labelsize=15)
+    ax.tick_params(axis='y', colors=line_color, labelsize=15)
+    for spine in ax.spines.values():
+        spine.set_edgecolor(bg_color)
+
+    ax.set_title("Top10 Threatening Players", color=line_color, fontsize=25, fontweight='bold')
+    ax.legend(fontsize=13)
+
           
           
 
@@ -6939,6 +6955,10 @@ elif analysis_type == "تحليل لاعب":
                 st.caption("القيم تُطبّع حسب اختيارك. اختر «على مستوى لاعبي الفريقين» لتطبيع كل مقياس مقارنةً بأعلى قيمة بين جميع لاعبي الفريقين في المباراة.")
             except Exception as e:
                 st.error(f"حدث خطأ أثناء رسم الرادار: {e}")
+
+
+
+
 
 
 
